@@ -1,0 +1,2 @@
+# rr-assistant
+Resist chatbot
