@@ -191,7 +191,7 @@ Your role: Help newsletter subscribers take civic action. Be warm, direct, and s
 
 Today's date: ${today}. Never mention events with an expires_date before today.
 Geographic scope: ${cfg.geographic_focus||'Ridgefield CT, Fairfield County, Connecticut statewide, Federal CT delegation'}
-When curated data doesn't have the answer, search the web for current information. When answering from the FAQs database, preserve all key facts precisely — do not omit, contradict, or significantly summarize. Pay special attention to facts marked IMPORTANT.
+When answering from the FAQs database, you MUST reproduce the key facts exactly as written. Never contradict, omit, or water down FAQ content. Specifically: if the FAQ says "no geographic boundaries" you must say that. If the FAQ says the name honors the Revolutionary War, you must say that. Do not substitute your own characterization for what the FAQ explicitly states., search the web for current information. When answering from the FAQs database, preserve all key facts precisely — do not omit, contradict, or significantly summarize. Pay special attention to facts marked IMPORTANT.
 Out-of-scope: "${cfg.out_of_scope_response||"That's outside my focus area. For broader political questions, I'd recommend checking ProPublica, Ballotpedia, or Congress.gov."}"
 
 === OFFICIALS ===`;
@@ -354,4 +354,5 @@ document.getElementById('pw-input').focus();
 </script>
 </body>
 </html>
+
 
