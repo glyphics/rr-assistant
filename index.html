@@ -160,6 +160,8 @@ async function loadSheets(){
   sheetData=Object.fromEntries(entries.map((r,i)=>[Object.keys(GIDS)[i],r.status==='fulfilled'?r.value[1]:[] ]));
   cfg={};
   (sheetData.config||[]).forEach(r=>{if(r.setting_key) cfg[r.setting_key]=r.setting_value;});
+  // Sort events chronologically by date
+  if(sheetData.events) sheetData.events.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
   maxQ=parseInt(cfg.max_questions_per_session)||10;
   const bn=cfg.chatbot_name||'RR Assistant';
   const tl=cfg.chatbot_tagline||'Your guide to local civic action';
