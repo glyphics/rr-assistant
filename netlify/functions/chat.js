@@ -42,20 +42,25 @@ exports.handler = async function(event) {
       };
     }
 
-    // Log question + response to Google Sheets (fire and forget — won't slow down response)
+    // Log question + response to Google Sheets
     if (LOGGER_URL && body.messages && body.messages.length > 0) {
       const lastUser = [...body.messages].reverse().find(m => m.role === 'user');
       const reply    = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
 
-      fetch(LOGGER_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          session_id: body.session_id || 'unknown',
-          question:   lastUser ? lastUser.content : '',
-          response:   reply
-        })
-      }).catch(() => {}); // Silent fail — logging never blocks the chatbot
+      try {
+        await fetch(LOGGER_URL, {
+          method: 'POST',
+          redirect: 'follow',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            session_id: body.session_id || 'unknown',
+            question:   lastUser ? lastUser.content : '',
+            response:   reply
+          })
+        });
+      } catch(logErr) {
+        console.log('Logging failed:', logErr.message);
+      }
     }
 
     return {
