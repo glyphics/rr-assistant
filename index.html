@@ -211,6 +211,23 @@ function fillInput(text){
   document.getElementById('suggestions').style.display='none';
 }
 
+// FAQ matcher — finds best matching FAQ for a user question
+function matchFAQ(question){
+  const q=question.toLowerCase().replace(/[^a-z0-9 ]/g,'');
+  const words=q.split(' ').filter(w=>w.length>3);
+  let best=null, bestScore=0;
+  (sheetData.faqs||[]).forEach(f=>{
+    if(!f.question||!f.answer) return;
+    const fq=f.question.toLowerCase().replace(/[^a-z0-9 ]/g,'');
+    let score=0;
+    words.forEach(w=>{ if(fq.includes(w)) score++; });
+    // Boost exact substring matches
+    if(fq.includes(q.substring(0,20))) score+=3;
+    if(score>bestScore){ bestScore=score; best=f; }
+  });
+  return bestScore>=2 ? best : null;
+}
+
 async function sendMsg(){
   if(busy||qCount>=maxQ) return;
   const inp=document.getElementById('msg-input');
@@ -222,12 +239,22 @@ async function sendMsg(){
   msgs.push({role:'user',content:text});
   busy=true;qCount++;updateCounter();setTyping(true);
   document.getElementById('send-btn').disabled=true;
+
+  // Check for FAQ match — if found, inject exact answer into the message
+  const faqMatch=matchFAQ(text);
+  const messagesWithContext = faqMatch
+    ? [...msgs.slice(0,-1), {
+        role:'user',
+        content:`The user asked: "${text}"\n\nYou MUST deliver this exact answer — do not change the facts, do not paraphrase, do not omit anything:\n\n${faqMatch.answer}\n\nFormat it clearly but keep ALL facts exactly as written above.`
+      }]
+    : msgs;
+
   try {
     const res=await fetch('/.netlify/functions/chat',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        messages: msgs,
+        messages: messagesWithContext,
         session_id: SESSION_ID,
         sheetData: sheetData,
         cfg: cfg
