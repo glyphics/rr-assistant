@@ -26,8 +26,7 @@
   #typing{display:none;align-items:flex-start;gap:8px}
   #typing .bubble{display:flex;gap:5px;align-items:center;padding:12px 16px}
   .dot{width:7px;height:7px;background:#6b7280;border-radius:50%;animation:bounce 1s ease-in-out infinite}
-  .dot:nth-child(2){animation-delay:0.15s}
-  .dot:nth-child(3){animation-delay:0.3s}
+  .dot:nth-child(2){animation-delay:0.15s}.dot:nth-child(3){animation-delay:0.3s}
   @keyframes bounce{0%,100%{transform:translateY(0);opacity:0.5}50%{transform:translateY(-4px);opacity:1}}
   #suggestions{padding:0 16px 8px;display:flex;gap:8px;flex-wrap:wrap}
   .chip{background:#1a1a2e;border:1px solid #374151;border-radius:20px;padding:6px 12px;color:#9ca3af;font-size:12px;cursor:pointer;transition:all 0.15s;font-family:inherit}
@@ -41,7 +40,6 @@
   #send-btn:hover{background:#b91c1c}
   #send-btn:disabled{background:#374151;cursor:not-allowed}
   #footer-text{color:#374151;font-size:11px;text-align:center;margin-top:8px}
-  /* Gate */
   #gate{position:fixed;inset:0;background:#0f0f1a;display:flex;align-items:center;justify-content:center;padding:16px;z-index:100}
   #gate-card{width:100%;max-width:400px}
   #gate-logo{text-align:center;margin-bottom:32px}
@@ -57,14 +55,10 @@
   #pw-btn{width:100%;margin-top:16px;background:#dc2626;color:white;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:600;cursor:pointer;transition:background 0.2s;font-family:inherit}
   #pw-btn:hover{background:#b91c1c}
   #gate-hint{color:#4b5563;font-size:12px;text-align:center;margin-top:16px}
-  #limit-msg{display:none;text-align:center;padding:8px 0}
-  #limit-inner{display:inline-block;background:#1a1a2e;border:1px solid #2d2d44;border-radius:12px;padding:10px 16px;color:#9ca3af;font-size:13px}
-  #limit-inner a{color:#f87171}
 </style>
 </head>
 <body>
 
-<!-- PASSPHRASE GATE -->
 <div id="gate">
   <div id="gate-card">
     <div id="gate-logo">
@@ -83,7 +77,6 @@
   </div>
 </div>
 
-<!-- CHAT UI -->
 <div id="header">
   <div style="display:flex;align-items:center">
     <div class="logo">RR</div>
@@ -108,10 +101,10 @@
 </div>
 
 <div id="suggestions" style="display:none">
-  <button class="chip" onclick="fillInput('Who is my US Representative?')">Who is my US Representative?</button>
+  <button class="chip" onclick="fillInput('What is Ridgefield Resistance?')">What is Ridgefield Resistance?</button>
+  <button class="chip" onclick="fillInput('Who represents me in Congress?')">Who represents me in Congress?</button>
   <button class="chip" onclick="fillInput('What events are coming up?')">What events are coming up?</button>
-  <button class="chip" onclick="fillInput('How do I contact my state senator?')">How do I contact my state senator?</button>
-  <button class="chip" onclick="fillInput('How do I register to vote?')">How do I register to vote?</button>
+  <button class="chip" onclick="fillInput('How do I take action this week?')">How do I take action this week?</button>
 </div>
 
 <div id="input-area">
@@ -128,26 +121,13 @@
 
 <script>
 const SHEET_ID = '2PACX-1vTAjCDJgmQZ53MYc9GUh7y43rmLTQMTC3S7-3hj_VH43MBz6YQ1R21Njt7K7RrWPWLnGX8XhBZsQBrO';
-const BASE = `https://docs.google.com/spreadsheets/d/e/${SHEET_ID}/pub`;
-const GIDS = {officials:'0',events:'548359545',faqs:'724535814',resources:'1538934812',config:'1839270458'};
+const BASE     = `https://docs.google.com/spreadsheets/d/e/${SHEET_ID}/pub`;
+const GIDS     = {officials:'0',events:'548359545',faqs:'724535814',resources:'1538934812',config:'1839270458'};
+const SESSION_ID = 'sess-' + Math.random().toString(36).substring(2,10);
 
-let sheetData = {}, cfg = {}, msgs = [], qCount = 0, maxQ = 10, busy = false;
-// Anonymous session ID — refreshes every page load, never stores personal info
-const SESSION_ID = 'sess-' + Math.random().toString(36).substring(2, 10);
+let sheetData={}, cfg={}, msgs=[], qCount=0, maxQ=10, busy=false;
 
 function csvUrl(gid){ return `${BASE}?gid=${gid}&single=true&output=csv`; }
-
-function parseCSV(text){
-  const lines = text.split('\n');
-  if(lines.length < 2) return [];
-  const headers = splitLine(lines[0]).map(h=>h.replace(/"/g,'').trim());
-  return lines.slice(1).filter(l=>l.trim()).map(line=>{
-    const vals = splitLine(line);
-    const obj={};
-    headers.forEach((h,j)=>{ obj[h]=(vals[j]||'').replace(/"/g,'').trim(); });
-    return obj;
-  });
-}
 
 function splitLine(line){
   const res=[];let cur='';let q=false;
@@ -159,150 +139,112 @@ function splitLine(line){
   res.push(cur);return res;
 }
 
+function parseCSV(text){
+  const lines=text.split('\n');
+  if(lines.length<2) return [];
+  const headers=splitLine(lines[0]).map(h=>h.replace(/"/g,'').trim());
+  return lines.slice(1).filter(l=>l.trim()).map(line=>{
+    const vals=splitLine(line);
+    const obj={};
+    headers.forEach((h,j)=>{obj[h]=(vals[j]||'').replace(/"/g,'').trim();});
+    return obj;
+  });
+}
+
 async function loadSheets(){
-  const entries = await Promise.all(
+  const entries=await Promise.allSettled(
     Object.entries(GIDS).map(([k,gid])=>
-      fetch(csvUrl(gid)).then(r=>r.text()).then(t=>[k,parseCSV(t)]).catch(()=>[k,[]])
+      fetch(csvUrl(gid)).then(r=>r.text()).then(t=>[k,parseCSV(t)])
     )
   );
-  sheetData = Object.fromEntries(entries);
-  cfg = {};
-  (sheetData.config||[]).forEach(r=>{ if(r.setting_key) cfg[r.setting_key]=r.setting_value; });
-  maxQ = parseInt(cfg.max_questions_per_session)||10;
-
-  // Apply config to UI
-  const bn = cfg.chatbot_name||'RR Assistant';
-  const tl = cfg.chatbot_tagline||'Your guide to local civic action';
-  const on = cfg.org_name||'Ridgefield Resistance';
-  document.getElementById('g-botname').textContent = bn;
-  document.getElementById('g-tagline').textContent = tl;
-  document.getElementById('g-org').textContent = on + ' · Subscriber Access';
-  document.getElementById('h-botname').textContent = bn;
-  document.getElementById('h-org').textContent = on;
-  document.getElementById('footer-text').textContent = on + ' · ' + tl;
+  sheetData=Object.fromEntries(entries.map((r,i)=>[Object.keys(GIDS)[i],r.status==='fulfilled'?r.value[1]:[] ]));
+  cfg={};
+  (sheetData.config||[]).forEach(r=>{if(r.setting_key) cfg[r.setting_key]=r.setting_value;});
+  maxQ=parseInt(cfg.max_questions_per_session)||10;
+  const bn=cfg.chatbot_name||'RR Assistant';
+  const tl=cfg.chatbot_tagline||'Your guide to local civic action';
+  const on=cfg.org_name||'Ridgefield Resistance';
+  document.getElementById('g-botname').textContent=bn;
+  document.getElementById('g-tagline').textContent=tl;
+  document.getElementById('g-org').textContent=on+' · Subscriber Access';
+  document.getElementById('h-botname').textContent=bn;
+  document.getElementById('h-org').textContent=on;
+  document.getElementById('footer-text').textContent=on+' · '+tl;
   updateCounter();
 }
 
-function buildSystem(){
-  const today = new Date().toISOString().split('T')[0];
-  let s = `You are ${cfg.chatbot_name||'RR Assistant'}, a civic information assistant for ${cfg.org_name||'Ridgefield Resistance'} — a grassroots progressive organization based in ${cfg.org_location||'Ridgefield, CT'}.
-
-Your role: Help newsletter subscribers take civic action. Be warm, direct, and specific. Always provide phone numbers, emails, and links when available. Format responses clearly using line breaks between items.
-
-Today's date: ${today}. Never mention events with an expires_date before today.
-Geographic scope: ${cfg.geographic_focus||'Ridgefield CT, Fairfield County, Connecticut statewide, Federal CT delegation'}
-When answering from the FAQs database, you MUST reproduce the key facts exactly as written. Never contradict, omit, or water down FAQ content. Specifically: if the FAQ says "no geographic boundaries" you must say that. If the FAQ says the name honors the Revolutionary War, you must say that. Do not substitute your own characterization for what the FAQ explicitly states., search the web for current information. When answering from the FAQs database, preserve all key facts precisely — do not omit, contradict, or significantly summarize. Pay special attention to facts marked IMPORTANT.
-Out-of-scope: "${cfg.out_of_scope_response||"That's outside my focus area. For broader political questions, I'd recommend checking ProPublica, Ballotpedia, or Congress.gov."}"
-
-=== OFFICIALS ===`;
-
-  (sheetData.officials||[]).filter(o=>o.active!=='FALSE').forEach(o=>{
-    if(!o.title) return;
-    s+=`\n\n${o.title} ${o.first_name} ${o.last_name} | Level: ${o.level} | District: ${o.district||'N/A'}`;
-    if(o.phone) s+=` | Phone: ${o.phone}`;
-    if(o.email && o.email!=='via website') s+=` | Email: ${o.email}`;
-    if(o.website) s+=` | Website: ${o.website}`;
-    if(o.office_address) s+=` | Office: ${o.office_address}`;
-    if(o.notes) s+=` | Notes: ${o.notes}`;
-  });
-
-  s+='\n\n=== UPCOMING EVENTS ===';
-  const upcoming=(sheetData.events||[]).filter(e=>e.active!=='FALSE'&&(e.expires_date||'9999')>=today);
-  if(!upcoming.length){s+='\nNo upcoming events.';}
-  else upcoming.forEach(e=>{
-    s+=`\n\n${e.event_name} (${e.event_type}) — ${e.date} at ${e.time}`;
-    s+=` — ${e.location_name}, ${e.location_address}`;
-    if(e.description) s+=` — ${e.description}`;
-    if(e.registration_link) s+=` — Register: ${e.registration_link}`;
-  });
-
-  s+='\n\n=== FAQs ===';
-  (sheetData.faqs||[]).forEach(f=>{ if(f.question) s+=`\nQ: ${f.question}\nA: ${f.answer}\n`; });
-
-  s+='\n\n=== RESOURCES ===';
-  (sheetData.resources||[]).filter(r=>r.active!=='FALSE').forEach(r=>{
-    if(r.name) s+=`\n${r.name} (${r.category}) — ${r.description} — ${r.url}`;
-  });
-
-  s+=`\n\n=== ORG CONTACT ===\nEmail: ${cfg.org_email||'N/A'}\nWebsite: ${cfg.org_website||'N/A'}\nSubstack: ${cfg.org_substack||'N/A'}`;
-  return s;
-}
-
 function updateCounter(){
-  const rem = maxQ - qCount;
-  document.getElementById('qlimit-text').textContent = `${rem} / ${maxQ} questions left`;
-  document.getElementById('qlimit-text').style.color = rem<=3 ? '#f87171' : '#6b7280';
-  document.getElementById('qlimit-fill').style.width = `${(rem/maxQ)*100}%`;
-  document.getElementById('qlimit-fill').style.background = rem<=3 ? '#ef4444' : '#dc2626';
+  const rem=maxQ-qCount;
+  document.getElementById('qlimit-text').textContent=`${rem} / ${maxQ} questions left`;
+  document.getElementById('qlimit-text').style.color=rem<=3?'#f87171':'#6b7280';
+  document.getElementById('qlimit-fill').style.width=`${(rem/maxQ)*100}%`;
+  document.getElementById('qlimit-fill').style.background=rem<=3?'#ef4444':'#dc2626';
 }
 
 function scrollBottom(){
-  const m = document.getElementById('messages');
-  m.scrollTop = m.scrollHeight;
+  const m=document.getElementById('messages');
+  m.scrollTop=m.scrollHeight;
 }
 
-function addMsg(role, text){
-  const container = document.getElementById('messages');
-  const typing = document.getElementById('typing');
-  const div = document.createElement('div');
-  div.className = `msg ${role}`;
+function addMsg(role,text){
+  const container=document.getElementById('messages');
+  const typing=document.getElementById('typing');
+  const div=document.createElement('div');
+  div.className=`msg ${role}`;
   if(role==='assistant'){
-    div.innerHTML = `<div class="msg-avatar">RR</div><div class="bubble assistant">${text.replace(/\n/g,'<br>')}</div>`;
+    div.innerHTML=`<div class="msg-avatar">RR</div><div class="bubble assistant">${text.replace(/\n/g,'<br>')}</div>`;
   } else {
-    div.innerHTML = `<div class="bubble user">${text.replace(/</g,'&lt;')}</div>`;
+    div.innerHTML=`<div class="bubble user">${text.replace(/</g,'&lt;')}</div>`;
   }
-  container.insertBefore(div, typing);
+  container.insertBefore(div,typing);
   scrollBottom();
 }
 
 function setTyping(show){
-  document.getElementById('typing').style.display = show ? 'flex' : 'none';
+  document.getElementById('typing').style.display=show?'flex':'none';
   scrollBottom();
 }
 
 function fillInput(text){
-  const inp = document.getElementById('msg-input');
-  inp.value = text;
-  inp.focus();
+  document.getElementById('msg-input').value=text;
+  document.getElementById('msg-input').focus();
   document.getElementById('suggestions').style.display='none';
 }
 
 async function sendMsg(){
-  if(busy || qCount>=maxQ) return;
-  const inp = document.getElementById('msg-input');
-  const text = inp.value.trim();
+  if(busy||qCount>=maxQ) return;
+  const inp=document.getElementById('msg-input');
+  const text=inp.value.trim();
   if(!text) return;
-  inp.value=''; inp.style.height='44px';
+  inp.value='';inp.style.height='44px';
   document.getElementById('suggestions').style.display='none';
-
-  addMsg('user', text);
+  addMsg('user',text);
   msgs.push({role:'user',content:text});
-  busy=true;
-  qCount++;
-  updateCounter();
-  setTyping(true);
+  busy=true;qCount++;updateCounter();setTyping(true);
   document.getElementById('send-btn').disabled=true;
-
   try {
-    const res = await fetch('/.netlify/functions/chat', {
+    const res=await fetch('/.netlify/functions/chat',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ system: buildSystem(), messages: msgs, session_id: SESSION_ID })
+      body:JSON.stringify({
+        messages: msgs,
+        session_id: SESSION_ID,
+        sheetData: sheetData,
+        cfg: cfg
+      })
     });
-    const data = await res.json();
-    const reply = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('')
-      || 'I had trouble generating a response. Please try again.';
+    const data=await res.json();
+    const reply=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('')
+      ||'I had trouble generating a response. Please try again.';
     msgs.push({role:'assistant',content:reply});
-    addMsg('assistant', reply);
-  } catch(e) {
+    addMsg('assistant',reply);
+  } catch(e){
     addMsg('assistant','Connection error. Please try again in a moment.');
   } finally {
-    busy=false;
-    setTyping(false);
-    document.getElementById('send-btn').disabled = qCount>=maxQ;
+    busy=false;setTyping(false);
+    document.getElementById('send-btn').disabled=qCount>=maxQ;
     inp.focus();
   }
-
   if(qCount>=maxQ){
     const container=document.getElementById('messages');
     const typing=document.getElementById('typing');
@@ -316,26 +258,23 @@ async function sendMsg(){
   }
 }
 
-// Input auto-resize
-document.getElementById('msg-input').addEventListener('input', function(){
+document.getElementById('msg-input').addEventListener('input',function(){
   this.style.height='44px';
   this.style.height=Math.min(this.scrollHeight,120)+'px';
 });
-document.getElementById('msg-input').addEventListener('keydown', function(e){
+document.getElementById('msg-input').addEventListener('keydown',function(e){
   if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}
 });
-
-// Passphrase gate
-document.getElementById('pw-input').addEventListener('keydown', e=>{ if(e.key==='Enter') checkPw(); });
-document.getElementById('pw-btn').addEventListener('click', checkPw);
+document.getElementById('pw-input').addEventListener('keydown',e=>{if(e.key==='Enter') checkPw();});
+document.getElementById('pw-btn').addEventListener('click',checkPw);
 
 function checkPw(){
-  const val = document.getElementById('pw-input').value.trim().toUpperCase();
-  const correct = (cfg.subscriber_passphrase||'RESISTANCE2026').toUpperCase();
+  const val=document.getElementById('pw-input').value.trim().toUpperCase();
+  const correct=(cfg.subscriber_passphrase||'RESISTANCE2026').toUpperCase();
   if(val===correct){
     document.getElementById('gate').style.display='none';
-    const welcome = cfg.chatbot_welcome_message||"Hi! I'm the RR Assistant. How can I help you take action today?";
-    addMsg('assistant', welcome);
+    const welcome=cfg.chatbot_welcome_message||"Hi! I'm the RR Assistant. How can I help you take action today?";
+    addMsg('assistant',welcome);
     msgs.push({role:'assistant',content:welcome});
     document.getElementById('suggestions').style.display='flex';
     document.getElementById('msg-input').focus();
@@ -344,15 +283,12 @@ function checkPw(){
     const inp=document.getElementById('pw-input');
     err.style.display='block';
     inp.style.borderColor='#ef4444';
-    setTimeout(()=>{ err.style.display='none'; inp.style.borderColor='#374151'; },3000);
+    setTimeout(()=>{err.style.display='none';inp.style.borderColor='#374151';},3000);
   }
 }
 
-// Init
 loadSheets();
 document.getElementById('pw-input').focus();
 </script>
 </body>
 </html>
-
-
