@@ -186,15 +186,29 @@ function scrollBottom(){
   m.scrollTop=m.scrollHeight;
 }
 
+function linkify(text){
+  // Escape HTML first
+  text = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // Convert URLs to clickable links
+  text = text.replace(/(https?:\/\/[^\s<]+)/g,
+    '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:#f87171;text-decoration:underline;">$1</a>');
+  // Convert email addresses to mailto links
+  text = text.replace(/([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})/g,
+    '<a href="mailto:$1" style="color:#f87171;text-decoration:underline;">$1</a>');
+  // Convert newlines to <br>
+  text = text.replace(/\n/g,'<br>');
+  return text;
+}
+
 function addMsg(role,text){
   const container=document.getElementById('messages');
   const typing=document.getElementById('typing');
   const div=document.createElement('div');
   div.className=`msg ${role}`;
   if(role==='assistant'){
-    div.innerHTML=`<div class="msg-avatar">RR</div><div class="bubble assistant">${text.replace(/\n/g,'<br>')}</div>`;
+    div.innerHTML=`<div class="msg-avatar">RR</div><div class="bubble assistant">${linkify(text)}</div>`;
   } else {
-    div.innerHTML=`<div class="bubble user">${text.replace(/</g,'&lt;')}</div>`;
+    div.innerHTML=`<div class="bubble user">${text.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</div>`;
   }
   container.insertBefore(div,typing);
   scrollBottom();
