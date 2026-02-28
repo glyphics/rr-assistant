@@ -132,6 +132,8 @@ const BASE = `https://docs.google.com/spreadsheets/d/e/${SHEET_ID}/pub`;
 const GIDS = {officials:'0',events:'548359545',faqs:'724535814',resources:'1538934812',config:'1839270458'};
 
 let sheetData = {}, cfg = {}, msgs = [], qCount = 0, maxQ = 10, busy = false;
+// Anonymous session ID — refreshes every page load, never stores personal info
+const SESSION_ID = 'sess-' + Math.random().toString(36).substring(2, 10);
 
 function csvUrl(gid){ return `${BASE}?gid=${gid}&single=true&output=csv`; }
 
@@ -285,7 +287,7 @@ async function sendMsg(){
     const res = await fetch('/.netlify/functions/chat', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ system: buildSystem(), messages: msgs })
+      body: JSON.stringify({ system: buildSystem(), messages: msgs, session_id: SESSION_ID })
     });
     const data = await res.json();
     const reply = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('')
