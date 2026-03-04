@@ -96,18 +96,22 @@ CORE RULES:
     }
 
     // Log to Google Sheets (non-blocking)
+    // FIX: Use body.original_question (clean user text sent by index.html)
+    // instead of lastUser.content which contains the full injected FAQ prompt.
     if (LOGGER_URL && body.messages && body.messages.length > 0) {
-      const lastUser = [...body.messages].reverse().find(m => m.role === 'user');
-      const reply    = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+      const cleanQuestion = body.original_question ||
+        (([...body.messages].reverse().find(m => m.role === 'user') || {}).content || '');
+      const reply = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
       try {
         await fetch(LOGGER_URL, {
           method: 'POST',
           redirect: 'follow',
           headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({
-            session_id: body.session_id || 'unknown',
-            question:   lastUser ? lastUser.content : '',
-            response:   reply
+            session_id:    body.session_id    || 'unknown',
+            question:      cleanQuestion,
+            response:      reply,
+            action_served: body.action_served || ''
           })
         });
       } catch(logErr) {
