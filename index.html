@@ -55,6 +55,37 @@
   #pw-btn{width:100%;margin-top:16px;background:#dc2626;color:white;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:600;cursor:pointer;transition:background 0.2s;font-family:inherit}
   #pw-btn:hover{background:#b91c1c}
   #gate-hint{color:#4b5563;font-size:12px;text-align:center;margin-top:16px}
+
+  /* ── Action Item Cards ──────────────────────────────── */
+  .action-cards-wrapper{
+    padding-left:38px; /* lines up under the bubble, past the avatar */
+    max-width:calc(72% + 38px);
+  }
+  .action-cards-header{
+    font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;
+    color:#6b7280;margin-bottom:.4rem;margin-top:.1rem;
+  }
+  .action-card{
+    border-radius:0 6px 6px 0;
+    padding:.5rem .75rem;
+    margin-bottom:.4rem;
+    background:#1a1a2e;
+  }
+  .action-card-urgency{
+    font-size:.65rem;font-weight:700;text-transform:uppercase;
+    letter-spacing:.07em;margin-bottom:.2rem;
+  }
+  .action-card-title{
+    font-size:.85rem;font-weight:600;color:#e5e7eb;
+  }
+  .action-card-details{
+    font-size:.78rem;color:#9ca3af;margin:.25rem 0;line-height:1.4;
+  }
+  .action-card-link{
+    display:inline-block;font-size:.75rem;font-weight:600;
+    margin-top:.2rem;text-decoration:none;
+  }
+  .action-card-link:hover{text-decoration:underline;}
 </style>
 </head>
 <body>
@@ -120,12 +151,29 @@
 </div>
 
 <script>
+// ══════════════════════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════════════════════
+
 const SHEET_ID = '2PACX-1vTAjCDJgmQZ53MYc9GUh7y43rmLTQMTC3S7-3hj_VH43MBz6YQ1R21Njt7K7RrWPWLnGX8XhBZsQBrO';
 const BASE     = `https://docs.google.com/spreadsheets/d/e/${SHEET_ID}/pub`;
 const GIDS     = {officials:'0',events:'548359545',faqs:'724535814',resources:'1538934812',config:'1839270458'};
+
+// ─── ACTION ITEMS ─────────────────────────────────────────────
+// STEP: Paste your Actions tab CSV URL here after publishing it.
+// How to get it: File → Share → Publish to web → Actions tab → CSV → Copy link
+// It will look like:
+//   https://docs.google.com/spreadsheets/d/e/LONG_ID/pub?gid=NUMBERS&single=true&output=csv
+const ACTIONS_CSV_URL = 'PASTE_YOUR_ACTIONS_CSV_URL_HERE';
+
 const SESSION_ID = 'sess-' + Math.random().toString(36).substring(2,10);
 
 let sheetData={}, cfg={}, msgs=[], qCount=0, maxQ=10, busy=false;
+let actionsData = [];   // loaded from Actions tab
+
+// ══════════════════════════════════════════════════════════════
+// CSV PARSING
+// ══════════════════════════════════════════════════════════════
 
 function csvUrl(gid){ return `${BASE}?gid=${gid}&single=true&output=csv`; }
 
@@ -151,6 +199,19 @@ function parseCSV(text){
   });
 }
 
+// parseCSVRaw returns array-of-arrays (used for Actions tab where order matters)
+function parseCSVRaw(text){
+  const lines=text.split('\n');
+  if(lines.length<2) return [];
+  return lines.slice(1).filter(l=>l.trim()).map(line=>
+    splitLine(line).map(v=>v.replace(/"/g,'').trim())
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// SHEET LOADING
+// ══════════════════════════════════════════════════════════════
+
 async function loadSheets(){
   const entries=await Promise.allSettled(
     Object.entries(GIDS).map(([k,gid])=>
@@ -160,7 +221,6 @@ async function loadSheets(){
   sheetData=Object.fromEntries(entries.map((r,i)=>[Object.keys(GIDS)[i],r.status==='fulfilled'?r.value[1]:[] ]));
   cfg={};
   (sheetData.config||[]).forEach(r=>{if(r.setting_key) cfg[r.setting_key]=r.setting_value;});
-  // Sort events chronologically by date
   if(sheetData.events) sheetData.events.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
   maxQ=parseInt(cfg.max_questions_per_session)||10;
   const bn=cfg.chatbot_name||'RR Assistant';
@@ -173,7 +233,148 @@ async function loadSheets(){
   document.getElementById('h-org').textContent=on;
   document.getElementById('footer-text').textContent=on+' · '+tl;
   updateCounter();
+
+  // Load action items in parallel — failure is non-fatal
+  loadActions();
 }
+
+// ══════════════════════════════════════════════════════════════
+// ACTION ITEMS — LOADING
+// ══════════════════════════════════════════════════════════════
+
+async function loadActions(){
+  // Skip if URL hasn't been configured yet
+  if(!ACTIONS_CSV_URL || ACTIONS_CSV_URL.includes('PASTE_YOUR')){
+    console.log('Actions: no URL configured, skipping.');
+    return;
+  }
+  try{
+    const resp = await fetch(ACTIONS_CSV_URL);
+    const text = await resp.text();
+    const rows  = parseCSVRaw(text);   // array-of-arrays; row[0]=ID row[1]=Title etc.
+
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    actionsData = rows.filter(row => {
+      // Col K (index 10) must be TRUE
+      if((row[10]||'').toUpperCase() !== 'TRUE') return false;
+      // Col J (index 9) — hide if past due date
+      const due = (row[9]||'').trim();
+      if(due){
+        const dueDate = new Date(due);
+        if(!isNaN(dueDate.getTime()) && dueDate < today) return false;
+      }
+      return true;
+    });
+    console.log('Actions loaded:', actionsData.length, 'active items');
+  } catch(err){
+    console.warn('Actions load failed:', err.message);
+    actionsData = [];
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// ACTION ITEMS — MATCHING
+// Col layout: 0=ID 1=Title 2=Keywords 3=Details 4=Category
+//             5=Urgency 6=Link 7=Link_Label 8=Owner 9=Due_Date 10=Active
+// ══════════════════════════════════════════════════════════════
+
+function matchActionItems(question){
+  if(!actionsData.length) return [];
+
+  const qLower = question.toLowerCase();
+
+  const scored = actionsData.map(row => {
+    const keywords    = (row[2]||'').toLowerCase().split(',').map(k=>k.trim()).filter(Boolean);
+    const keywordHits = keywords.filter(k => qLower.includes(k)).length;
+    const urgency     = (row[5]||'').toUpperCase();
+    const urgencyBoost = urgency==='HIGH' ? 3 : urgency==='MEDIUM' ? 1 : 0;
+    return { row, score: keywordHits + urgencyBoost, keywordHits };
+  });
+
+  // Keyword-matched items first (sorted by score desc), up to 2
+  const matched = scored
+    .filter(x => x.keywordHits > 0)
+    .sort((a,b) => b.score - a.score)
+    .slice(0,2)
+    .map(x => x.row);
+
+  if(matched.length) return matched;
+
+  // Proactive fallback: always show top HIGH urgency item even without keyword match
+  return actionsData.filter(row => (row[5]||'').toUpperCase()==='HIGH').slice(0,1);
+}
+
+// ══════════════════════════════════════════════════════════════
+// ACTION ITEMS — RENDERING
+// ══════════════════════════════════════════════════════════════
+
+function renderActionItems(actions){
+  if(!actions.length) return null;
+
+  const container = document.getElementById('messages');
+  const typing    = document.getElementById('typing');
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'action-cards-wrapper';
+
+  const header = document.createElement('div');
+  header.className = 'action-cards-header';
+  header.textContent = '🗂 Take Action';
+  wrapper.appendChild(header);
+
+  actions.forEach(row => {
+    const [id, title, , details, category, urgency, link, linkLabel] = row;
+    const color = urgency==='HIGH'   ? '#c0392b'
+                : urgency==='MEDIUM' ? '#d97706' : '#2c6fad';
+
+    const card = document.createElement('div');
+    card.className = 'action-card';
+    card.style.borderLeft = `3px solid ${color}`;
+
+    const urg = document.createElement('div');
+    urg.className = 'action-card-urgency';
+    urg.style.color = color;
+    urg.textContent = (urgency||'') + (category ? ' · ' + category : '');
+    card.appendChild(urg);
+
+    const ttl = document.createElement('div');
+    ttl.className = 'action-card-title';
+    ttl.textContent = title||'';
+    card.appendChild(ttl);
+
+    if(details){
+      const det = document.createElement('div');
+      det.className = 'action-card-details';
+      det.textContent = details;
+      card.appendChild(det);
+    }
+
+    if(link){
+      const lnk = document.createElement('a');
+      lnk.className = 'action-card-link';
+      lnk.href = link;
+      lnk.target = '_blank';
+      lnk.rel = 'noopener noreferrer';
+      lnk.style.color = color;
+      lnk.textContent = '→ ' + (linkLabel||'Take action');
+      card.appendChild(lnk);
+    }
+
+    wrapper.appendChild(card);
+  });
+
+  container.insertBefore(wrapper, typing);
+  scrollBottom();
+
+  // Return ID of first action for logging
+  return actions[0][0] || '';
+}
+
+// ══════════════════════════════════════════════════════════════
+// UI HELPERS
+// ══════════════════════════════════════════════════════════════
 
 function updateCounter(){
   const rem=maxQ-qCount;
@@ -189,15 +390,11 @@ function scrollBottom(){
 }
 
 function linkify(text){
-  // Escape HTML first
   text = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  // Convert URLs to clickable links
   text = text.replace(/(https?:\/\/[^\s<]+)/g,
     '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:#f87171;text-decoration:underline;">$1</a>');
-  // Convert email addresses to mailto links
   text = text.replace(/([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})/g,
     '<a href="mailto:$1" style="color:#f87171;text-decoration:underline;">$1</a>');
-  // Convert newlines to <br>
   text = text.replace(/\n/g,'<br>');
   return text;
 }
@@ -227,7 +424,10 @@ function fillInput(text){
   document.getElementById('suggestions').style.display='none';
 }
 
-// FAQ matcher — finds best matching FAQ for a user question
+// ══════════════════════════════════════════════════════════════
+// FAQ MATCHING (client-side exact-answer injection)
+// ══════════════════════════════════════════════════════════════
+
 function matchFAQ(question){
   const q=question.toLowerCase().replace(/[^a-z0-9 ]/g,'');
   const words=q.split(' ').filter(w=>w.length>3);
@@ -237,12 +437,15 @@ function matchFAQ(question){
     const fq=f.question.toLowerCase().replace(/[^a-z0-9 ]/g,'');
     let score=0;
     words.forEach(w=>{ if(fq.includes(w)) score++; });
-    // Boost exact substring matches
     if(fq.includes(q.substring(0,20))) score+=3;
     if(score>bestScore){ bestScore=score; best=f; }
   });
   return bestScore>=2 ? best : null;
 }
+
+// ══════════════════════════════════════════════════════════════
+// SEND MESSAGE
+// ══════════════════════════════════════════════════════════════
 
 async function sendMsg(){
   if(busy||qCount>=maxQ) return;
@@ -256,7 +459,7 @@ async function sendMsg(){
   busy=true;qCount++;updateCounter();setTyping(true);
   document.getElementById('send-btn').disabled=true;
 
-  // Check for FAQ match — if found, inject exact answer into the message
+  // FAQ injection — if a strong match exists, force exact answer
   const faqMatch=matchFAQ(text);
   const messagesWithContext = faqMatch
     ? [...msgs.slice(0,-1), {
@@ -265,7 +468,10 @@ async function sendMsg(){
       }]
     : msgs;
 
-  try {
+  let reply = '';
+  let actionServed = '';
+
+  try{
     const res=await fetch('/.netlify/functions/chat',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -273,14 +479,23 @@ async function sendMsg(){
         messages: messagesWithContext,
         session_id: SESSION_ID,
         sheetData: sheetData,
-        cfg: cfg
+        cfg: cfg,
+        original_question: text   // clean question, not the injected prompt
       })
     });
     const data=await res.json();
-    const reply=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('')
+    reply=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('')
       ||'I had trouble generating a response. Please try again.';
     msgs.push({role:'assistant',content:reply});
     addMsg('assistant',reply);
+
+    // ─── ACTION ITEMS ───────────────────────────────────
+    // Render action cards below the AI reply (non-blocking)
+    const actions = matchActionItems(text);
+    if(actions.length){
+      actionServed = renderActionItems(actions) || '';
+    }
+
   } catch(e){
     addMsg('assistant','Connection error. Please try again in a moment.');
   } finally {
@@ -288,6 +503,7 @@ async function sendMsg(){
     document.getElementById('send-btn').disabled=qCount>=maxQ;
     inp.focus();
   }
+
   if(qCount>=maxQ){
     const container=document.getElementById('messages');
     const typing=document.getElementById('typing');
@@ -301,6 +517,10 @@ async function sendMsg(){
   }
 }
 
+// ══════════════════════════════════════════════════════════════
+// EVENT LISTENERS
+// ══════════════════════════════════════════════════════════════
+
 document.getElementById('msg-input').addEventListener('input',function(){
   this.style.height='44px';
   this.style.height=Math.min(this.scrollHeight,120)+'px';
@@ -310,6 +530,10 @@ document.getElementById('msg-input').addEventListener('keydown',function(e){
 });
 document.getElementById('pw-input').addEventListener('keydown',e=>{if(e.key==='Enter') checkPw();});
 document.getElementById('pw-btn').addEventListener('click',checkPw);
+
+// ══════════════════════════════════════════════════════════════
+// PASSPHRASE GATE
+// ══════════════════════════════════════════════════════════════
 
 function checkPw(){
   const val=document.getElementById('pw-input').value.trim().toUpperCase();
@@ -329,6 +553,10 @@ function checkPw(){
     setTimeout(()=>{err.style.display='none';inp.style.borderColor='#374151';},3000);
   }
 }
+
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
 
 loadSheets();
 document.getElementById('pw-input').focus();
