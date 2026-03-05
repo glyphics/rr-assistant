@@ -95,7 +95,7 @@
       <label id="pw-label" for="pw-input">Subscriber Passphrase</label>
       <input type="password" id="pw-input" placeholder="Enter your passphrase" autocomplete="off"/>
       <p id="pw-err">Incorrect passphrase. Check this week's newsletter for access.</p>
-      <button id="pw-btn">Access RR Assistant →</button>
+      <button id="pw-btn" disabled style="opacity:0.5;cursor:not-allowed">Loading...</button>
       <p id="gate-hint">Passphrase included in your weekly newsletter</p>
     </div>
   </div>
@@ -242,6 +242,12 @@ async function loadSheets() {
   document.getElementById('h-org').textContent      = on;
   document.getElementById('footer-text').textContent = on + ' · ' + tl;
   updateCounter();
+
+  const btn = document.getElementById('pw-btn');
+  btn.disabled = false;
+  btn.style.opacity = '1';
+  btn.style.cursor = 'pointer';
+  btn.textContent = 'Access RR Assistant →';
 
   loadActions(); // non-blocking
 }
