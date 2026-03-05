@@ -1,4 +1,17 @@
-exports.handler = async function(event) {
+// ══════════════════════════════════════════════════════════════════════════
+// ResistChat — Netlify Function · chat.js
+// Receives POST from index.html, calls Anthropic API, logs to Google Sheets.
+//
+// Expected request body fields:
+//   messages          — conversation history (with FAQ injection if matched)
+//   session_id        — client-generated session identifier
+//   sheetData         — full sheet data from Google Sheets (officials, events, etc.)
+//   cfg               — config key/value pairs from Config tab
+//   original_question — clean user text (not the injected FAQ prompt)
+//   action_served     — action item ID pre-computed by index.html (may be empty)
+// ══════════════════════════════════════════════════════════════════════════
+
+exports.handler = async function (event) {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
@@ -15,12 +28,11 @@ exports.handler = async function(event) {
 
   try {
     const body = JSON.parse(event.body);
+    const d    = body.sheetData || {};
+    const cfg  = body.cfg       || {};
+    const today = new Date().toISOString().split('T')[0];
 
-    // Build system prompt from sheet data passed by frontend
-    const d      = body.sheetData || {};
-    const cfg    = body.cfg       || {};
-    const today  = new Date().toISOString().split('T')[0];
-
+    // ── Build system prompt ─────────────────────────────────────────────
     let system = `You are ${cfg.chatbot_name || 'RR Assistant'}, a civic information assistant for ${cfg.org_name || 'Ridgefield Resistance'}.
 
 CORE RULES:
@@ -28,7 +40,7 @@ CORE RULES:
 2. Geographic scope: ${cfg.geographic_focus || 'Ridgefield CT, Fairfield County, Connecticut statewide, Federal/National — including US President, Congress, Supreme Court, and federal policy'}
 3. Today is ${today}. Never mention events with expires_date before today.
 4. Always provide phone numbers, emails, and links when available.
-5. If curated data doesn't have the answer, use your own knowledge to answer civic, political, and government questions — especially about federal officials, the Supreme Court, Congress, the President, and US policy. Only deflect to external resources for topics completely unrelated to civic life, government, or political action.
+5. If curated data does not have the answer, use your own knowledge to answer civic, political, and government questions — especially about federal officials, the Supreme Court, Congress, the President, and US policy. Only deflect to external resources for topics completely unrelated to civic life, government, or political action.
 6. Out of scope: "${cfg.out_of_scope_response || "That's outside my focus area. For broader political questions, check ProPublica, Ballotpedia, or Congress.gov."}"
 
 === OFFICIALS ===`;
@@ -36,15 +48,17 @@ CORE RULES:
     (d.officials || []).filter(o => o.active !== 'FALSE').forEach(o => {
       if (!o.title) return;
       system += `\n${o.title} ${o.first_name} ${o.last_name} | ${o.level} | District: ${o.district || 'N/A'}`;
-      if (o.phone)                         system += ` | Phone: ${o.phone}`;
+      if (o.phone)                              system += ` | Phone: ${o.phone}`;
       if (o.email && o.email !== 'via website') system += ` | Email: ${o.email}`;
-      if (o.website)                       system += ` | Website: ${o.website}`;
-      if (o.office_address)                system += ` | Office: ${o.office_address}`;
-      if (o.notes)                         system += ` | Notes: ${o.notes}`;
+      if (o.website)                            system += ` | Website: ${o.website}`;
+      if (o.office_address)                     system += ` | Office: ${o.office_address}`;
+      if (o.notes)                              system += ` | Notes: ${o.notes}`;
     });
 
     system += '\n\n=== UPCOMING EVENTS ===';
-    const events = (d.events || []).filter(e => e.active !== 'FALSE' && (e.expires_date || '9999') >= today);
+    const events = (d.events || []).filter(e =>
+      e.active !== 'FALSE' && (e.expires_date || '9999') >= today
+    );
     if (!events.length) {
       system += '\nNo upcoming events currently scheduled.';
     } else {
@@ -69,19 +83,19 @@ CORE RULES:
 
     system += `\n\n=== ORG CONTACT ===\nEmail: ${cfg.org_email || 'N/A'}\nWebsite: ${cfg.org_website || 'N/A'}\nSubstack: ${cfg.org_substack || 'N/A'}`;
 
-    // Call Anthropic API
+    // ── Call Anthropic API ──────────────────────────────────────────────
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
+        'Content-Type':    'application/json',
+        'x-api-key':       ANTHROPIC_API_KEY,
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
+        model:      'claude-haiku-4-5-20251001',
         max_tokens: 1000,
-        system: system,
-        messages: body.messages
+        system:     system,
+        messages:   body.messages
       })
     });
 
@@ -95,18 +109,21 @@ CORE RULES:
       };
     }
 
-    // Log to Google Sheets (non-blocking)
-    // FIX: Use body.original_question (clean user text sent by index.html)
-    // instead of lastUser.content which contains the full injected FAQ prompt.
+    // ── Log to Google Sheets (non-blocking) ────────────────────────────
+    // Uses original_question (clean user text) instead of lastUser.content
+    // which would contain the full injected FAQ prompt.
+    // action_served is pre-computed by index.html before the fetch so it
+    // arrives here correctly in the same request body.
     if (LOGGER_URL && body.messages && body.messages.length > 0) {
-      const cleanQuestion = body.original_question ||
-        (([...body.messages].reverse().find(m => m.role === 'user') || {}).content || '');
+      const cleanQuestion = body.original_question
+        || (([...body.messages].reverse().find(m => m.role === 'user') || {}).content || '');
       const reply = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+
       try {
         await fetch(LOGGER_URL, {
-          method: 'POST',
+          method:   'POST',
           redirect: 'follow',
-          headers: { 'Content-Type': 'text/plain' },
+          headers:  { 'Content-Type': 'text/plain' },
           body: JSON.stringify({
             session_id:    body.session_id    || 'unknown',
             question:      cleanQuestion,
@@ -114,8 +131,8 @@ CORE RULES:
             action_served: body.action_served || ''
           })
         });
-      } catch(logErr) {
-        console.log('Logging failed:', logErr.message);
+      } catch (logErr) {
+        console.log('Logging failed (non-fatal):', logErr.message);
       }
     }
 
@@ -126,6 +143,7 @@ CORE RULES:
     };
 
   } catch (err) {
+    console.error('Handler error:', err.message);
     return {
       statusCode: 500,
       headers: { 'Access-Control-Allow-Origin': '*' },
