@@ -7,6 +7,8 @@
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:system-ui,-apple-system,sans-serif;background:#0f0f1a;color:#e5e7eb;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+  /* ── Header ── */
   #header{background:#1a1a2e;border-bottom:1px solid #2d2d44;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
   .logo{width:38px;height:38px;background:#dc2626;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:white;flex-shrink:0}
   #header-info{margin-left:12px}
@@ -16,6 +18,8 @@
   #qlimit-text{font-size:12px;font-weight:500;color:#6b7280}
   #qlimit-bar{width:60px;height:4px;background:#374151;border-radius:2px;margin-top:4px;margin-left:auto}
   #qlimit-fill{height:100%;background:#dc2626;border-radius:2px;transition:width 0.3s}
+
+  /* ── Messages ── */
   #messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:16px}
   .msg{display:flex;align-items:flex-start;gap:8px}
   .msg.user{justify-content:flex-end}
@@ -23,14 +27,21 @@
   .bubble{max-width:72%;padding:10px 14px;font-size:14px;line-height:1.6;border-radius:18px;white-space:pre-wrap;word-break:break-word}
   .bubble.assistant{background:#1a1a2e;border:1px solid #2d2d44;color:#e5e7eb;border-radius:18px 18px 18px 4px}
   .bubble.user{background:#dc2626;color:white;border-radius:18px 18px 4px 18px}
+
+  /* ── Typing indicator ── */
   #typing{display:none;align-items:flex-start;gap:8px}
   #typing .bubble{display:flex;gap:5px;align-items:center;padding:12px 16px}
   .dot{width:7px;height:7px;background:#6b7280;border-radius:50%;animation:bounce 1s ease-in-out infinite}
-  .dot:nth-child(2){animation-delay:0.15s}.dot:nth-child(3){animation-delay:0.3s}
+  .dot:nth-child(2){animation-delay:0.15s}
+  .dot:nth-child(3){animation-delay:0.3s}
   @keyframes bounce{0%,100%{transform:translateY(0);opacity:0.5}50%{transform:translateY(-4px);opacity:1}}
+
+  /* ── Suggestion chips ── */
   #suggestions{padding:0 16px 8px;display:flex;gap:8px;flex-wrap:wrap}
   .chip{background:#1a1a2e;border:1px solid #374151;border-radius:20px;padding:6px 12px;color:#9ca3af;font-size:12px;cursor:pointer;transition:all 0.15s;font-family:inherit}
   .chip:hover{border-color:#dc2626;color:#f9fafb}
+
+  /* ── Input area ── */
   #input-area{background:#1a1a2e;border-top:1px solid #2d2d44;padding:12px 16px;flex-shrink:0}
   #input-row{display:flex;gap:8px;align-items:flex-end}
   #msg-input{flex:1;background:#0f0f1a;color:white;border:1px solid #374151;border-radius:12px;padding:11px 14px;font-size:14px;outline:none;resize:none;font-family:inherit;line-height:1.5;min-height:44px;max-height:120px;transition:border-color 0.2s}
@@ -40,6 +51,8 @@
   #send-btn:hover{background:#b91c1c}
   #send-btn:disabled{background:#374151;cursor:not-allowed}
   #footer-text{color:#374151;font-size:11px;text-align:center;margin-top:8px}
+
+  /* ── Passphrase gate ── */
   #gate{position:fixed;inset:0;background:#0f0f1a;display:flex;align-items:center;justify-content:center;padding:16px;z-index:100}
   #gate-card{width:100%;max-width:400px}
   #gate-logo{text-align:center;margin-bottom:32px}
@@ -56,40 +69,20 @@
   #pw-btn:hover{background:#b91c1c}
   #gate-hint{color:#4b5563;font-size:12px;text-align:center;margin-top:16px}
 
-  /* ── Action Item Cards ──────────────────────────────── */
-  .action-cards-wrapper{
-    padding-left:38px; /* lines up under the bubble, past the avatar */
-    max-width:calc(72% + 38px);
-  }
-  .action-cards-header{
-    font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;
-    color:#6b7280;margin-bottom:.4rem;margin-top:.1rem;
-  }
-  .action-card{
-    border-radius:0 6px 6px 0;
-    padding:.5rem .75rem;
-    margin-bottom:.4rem;
-    background:#1a1a2e;
-  }
-  .action-card-urgency{
-    font-size:.65rem;font-weight:700;text-transform:uppercase;
-    letter-spacing:.07em;margin-bottom:.2rem;
-  }
-  .action-card-title{
-    font-size:.85rem;font-weight:600;color:#e5e7eb;
-  }
-  .action-card-details{
-    font-size:.78rem;color:#9ca3af;margin:.25rem 0;line-height:1.4;
-  }
-  .action-card-link{
-    display:inline-block;font-size:.75rem;font-weight:600;
-    margin-top:.2rem;text-decoration:none;
-  }
-  .action-card-link:hover{text-decoration:underline;}
+  /* ── Action Item Cards ── */
+  .action-cards-wrapper{padding-left:38px;max-width:calc(72% + 38px)}
+  .action-cards-header{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:#6b7280;margin-bottom:.4rem;margin-top:.1rem}
+  .action-card{border-radius:0 6px 6px 0;padding:.5rem .75rem;margin-bottom:.4rem;background:#1a1a2e}
+  .action-card-urgency{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.2rem}
+  .action-card-title{font-size:.85rem;font-weight:600;color:#e5e7eb}
+  .action-card-details{font-size:.78rem;color:#9ca3af;margin:.25rem 0;line-height:1.4}
+  .action-card-link{display:inline-block;font-size:.75rem;font-weight:600;margin-top:.2rem;text-decoration:none}
+  .action-card-link:hover{text-decoration:underline}
 </style>
 </head>
 <body>
 
+<!-- ── Passphrase Gate ─────────────────────────────────────── -->
 <div id="gate">
   <div id="gate-card">
     <div id="gate-logo">
@@ -108,6 +101,7 @@
   </div>
 </div>
 
+<!-- ── Header ─────────────────────────────────────────────── -->
 <div id="header">
   <div style="display:flex;align-items:center">
     <div class="logo">RR</div>
@@ -122,6 +116,7 @@
   </div>
 </div>
 
+<!-- ── Message List ────────────────────────────────────────── -->
 <div id="messages">
   <div id="typing">
     <div class="msg-avatar">RR</div>
@@ -131,6 +126,7 @@
   </div>
 </div>
 
+<!-- ── Suggestion Chips ────────────────────────────────────── -->
 <div id="suggestions" style="display:none">
   <button class="chip" onclick="fillInput('What is Ridgefield Resistance?')">What is Ridgefield Resistance?</button>
   <button class="chip" onclick="fillInput('Who represents me in Congress?')">Who represents me in Congress?</button>
@@ -138,6 +134,7 @@
   <button class="chip" onclick="fillInput('How do I take action this week?')">How do I take action this week?</button>
 </div>
 
+<!-- ── Input Area ─────────────────────────────────────────── -->
 <div id="input-area">
   <div id="input-row">
     <textarea id="msg-input" placeholder="Ask about officials, events, or how to take action..." rows="1"></textarea>
@@ -152,59 +149,65 @@
 
 <script>
 // ══════════════════════════════════════════════════════════════
-// CONFIG
+// CONFIGURATION
 // ══════════════════════════════════════════════════════════════
 
 const SHEET_ID = '2PACX-1vTAjCDJgmQZ53MYc9GUh7y43rmLTQMTC3S7-3hj_VH43MBz6YQ1R21Njt7K7RrWPWLnGX8XhBZsQBrO';
 const BASE     = `https://docs.google.com/spreadsheets/d/e/${SHEET_ID}/pub`;
-const GIDS     = {officials:'0',events:'548359545',faqs:'724535814',resources:'1538934812',config:'1839270458'};
+const GIDS     = {
+  officials: '0',
+  events:    '548359545',
+  faqs:      '724535814',
+  resources: '1538934812',
+  config:    '1839270458'
+};
 
-// ─── ACTION ITEMS ─────────────────────────────────────────────
-// STEP: Paste your Actions tab CSV URL here after publishing it.
-// How to get it: File → Share → Publish to web → Actions tab → CSV → Copy link
-// It will look like:
-//   https://docs.google.com/spreadsheets/d/e/LONG_ID/pub?gid=NUMBERS&single=true&output=csv
+// Publish your Actions tab as CSV and paste the URL here:
+// File → Share → Publish to web → Actions tab → CSV → Copy link
 const ACTIONS_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTAjCDJgmQZ53MYc9GUh7y43rmLTQMTC3S7-3hj_VH43MBz6YQ1R21Njt7K7RrWPWLnGX8XhBZsQBrO/pub?gid=925414627&single=true&output=csv';
 
-const SESSION_ID = 'sess-' + Math.random().toString(36).substring(2,10);
-
-let sheetData={}, cfg={}, msgs=[], qCount=0, maxQ=10, busy=false;
-let actionsData = [];   // loaded from Actions tab
+// ── State ────────────────────────────────────────────────────
+const SESSION_ID = 'sess-' + Math.random().toString(36).substring(2, 10);
+let sheetData = {}, cfg = {}, msgs = [], qCount = 0, maxQ = 10, busy = false;
+let actionsData = [];
 
 // ══════════════════════════════════════════════════════════════
 // CSV PARSING
 // ══════════════════════════════════════════════════════════════
 
-function csvUrl(gid){ return `${BASE}?gid=${gid}&single=true&output=csv`; }
-
-function splitLine(line){
-  const res=[];let cur='';let q=false;
-  for(let i=0;i<line.length;i++){
-    if(line[i]==='"'){q=!q;}
-    else if(line[i]===',' && !q){res.push(cur);cur='';}
-    else cur+=line[i];
-  }
-  res.push(cur);return res;
+function csvUrl(gid) {
+  return `${BASE}?gid=${gid}&single=true&output=csv`;
 }
 
-function parseCSV(text){
-  const lines=text.split('\n');
-  if(lines.length<2) return [];
-  const headers=splitLine(lines[0]).map(h=>h.replace(/"/g,'').trim());
-  return lines.slice(1).filter(l=>l.trim()).map(line=>{
-    const vals=splitLine(line);
-    const obj={};
-    headers.forEach((h,j)=>{obj[h]=(vals[j]||'').replace(/"/g,'').trim();});
+function splitLine(line) {
+  const res = []; let cur = ''; let q = false;
+  for (let i = 0; i < line.length; i++) {
+    if (line[i] === '"') { q = !q; }
+    else if (line[i] === ',' && !q) { res.push(cur); cur = ''; }
+    else cur += line[i];
+  }
+  res.push(cur);
+  return res;
+}
+
+function parseCSV(text) {
+  const lines = text.split('\n');
+  if (lines.length < 2) return [];
+  const headers = splitLine(lines[0]).map(h => h.replace(/"/g, '').trim());
+  return lines.slice(1).filter(l => l.trim()).map(line => {
+    const vals = splitLine(line);
+    const obj = {};
+    headers.forEach((h, j) => { obj[h] = (vals[j] || '').replace(/"/g, '').trim(); });
     return obj;
   });
 }
 
-// parseCSVRaw returns array-of-arrays (used for Actions tab where order matters)
-function parseCSVRaw(text){
-  const lines=text.split('\n');
-  if(lines.length<2) return [];
-  return lines.slice(1).filter(l=>l.trim()).map(line=>
-    splitLine(line).map(v=>v.replace(/"/g,'').trim())
+// Returns array-of-arrays — used for Actions tab where column position matters
+function parseCSVRaw(text) {
+  const lines = text.split('\n');
+  if (lines.length < 2) return [];
+  return lines.slice(1).filter(l => l.trim()).map(line =>
+    splitLine(line).map(v => v.replace(/"/g, '').trim())
   );
 }
 
@@ -212,63 +215,65 @@ function parseCSVRaw(text){
 // SHEET LOADING
 // ══════════════════════════════════════════════════════════════
 
-async function loadSheets(){
-  const entries=await Promise.allSettled(
-    Object.entries(GIDS).map(([k,gid])=>
-      fetch(csvUrl(gid)).then(r=>r.text()).then(t=>[k,parseCSV(t)])
+async function loadSheets() {
+  const entries = await Promise.allSettled(
+    Object.entries(GIDS).map(([k, gid]) =>
+      fetch(csvUrl(gid)).then(r => r.text()).then(t => [k, parseCSV(t)])
     )
   );
-  sheetData=Object.fromEntries(entries.map((r,i)=>[Object.keys(GIDS)[i],r.status==='fulfilled'?r.value[1]:[] ]));
-  cfg={};
-  (sheetData.config||[]).forEach(r=>{if(r.setting_key) cfg[r.setting_key]=r.setting_value;});
-  if(sheetData.events) sheetData.events.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
-  maxQ=parseInt(cfg.max_questions_per_session)||10;
-  const bn=cfg.chatbot_name||'RR Assistant';
-  const tl=cfg.chatbot_tagline||'Your guide to local civic action';
-  const on=cfg.org_name||'Ridgefield Resistance';
-  document.getElementById('g-botname').textContent=bn;
-  document.getElementById('g-tagline').textContent=tl;
-  document.getElementById('g-org').textContent=on+' · Subscriber Access';
-  document.getElementById('h-botname').textContent=bn;
-  document.getElementById('h-org').textContent=on;
-  document.getElementById('footer-text').textContent=on+' · '+tl;
+  sheetData = Object.fromEntries(
+    entries.map((r, i) => [Object.keys(GIDS)[i], r.status === 'fulfilled' ? r.value[1] : []])
+  );
+
+  cfg = {};
+  (sheetData.config || []).forEach(r => { if (r.setting_key) cfg[r.setting_key] = r.setting_value; });
+  if (sheetData.events) sheetData.events.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+
+  maxQ = parseInt(cfg.max_questions_per_session) || 10;
+
+  const bn = cfg.chatbot_name   || 'RR Assistant';
+  const tl = cfg.chatbot_tagline || 'Your guide to local civic action';
+  const on = cfg.org_name        || 'Ridgefield Resistance';
+
+  document.getElementById('g-botname').textContent  = bn;
+  document.getElementById('g-tagline').textContent  = tl;
+  document.getElementById('g-org').textContent      = on + ' · Subscriber Access';
+  document.getElementById('h-botname').textContent  = bn;
+  document.getElementById('h-org').textContent      = on;
+  document.getElementById('footer-text').textContent = on + ' · ' + tl;
   updateCounter();
 
-  // Load action items in parallel — failure is non-fatal
-  loadActions();
+  loadActions(); // non-blocking
 }
 
 // ══════════════════════════════════════════════════════════════
 // ACTION ITEMS — LOADING
+// Col layout: 0=ID 1=Title 2=Keywords 3=Details 4=Category
+//             5=Urgency 6=Link 7=Link_Label 8=Owner 9=Due_Date 10=Active
 // ══════════════════════════════════════════════════════════════
 
-async function loadActions(){
-  // Skip if URL hasn't been configured yet
-  if(!ACTIONS_CSV_URL || ACTIONS_CSV_URL.includes('PASTE_YOUR')){
+async function loadActions() {
+  if (!ACTIONS_CSV_URL || ACTIONS_CSV_URL.includes('PASTE_YOUR')) {
     console.log('Actions: no URL configured, skipping.');
     return;
   }
-  try{
-    const resp = await fetch(ACTIONS_CSV_URL);
-    const text = await resp.text();
-    const rows  = parseCSVRaw(text);   // array-of-arrays; row[0]=ID row[1]=Title etc.
-
-    const today = new Date();
-    today.setHours(0,0,0,0);
+  try {
+    const resp  = await fetch(ACTIONS_CSV_URL);
+    const text  = await resp.text();
+    const rows  = parseCSVRaw(text);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
 
     actionsData = rows.filter(row => {
-      // Col K (index 10) must be TRUE
-      if((row[10]||'').toUpperCase() !== 'TRUE') return false;
-      // Col J (index 9) — hide if past due date
-      const due = (row[9]||'').trim();
-      if(due){
+      if ((row[10] || '').toUpperCase() !== 'TRUE') return false;
+      const due = (row[9] || '').trim();
+      if (due) {
         const dueDate = new Date(due);
-        if(!isNaN(dueDate.getTime()) && dueDate < today) return false;
+        if (!isNaN(dueDate.getTime()) && dueDate < today) return false;
       }
       return true;
     });
     console.log('Actions loaded:', actionsData.length, 'active items');
-  } catch(err){
+  } catch (err) {
     console.warn('Actions load failed:', err.message);
     actionsData = [];
   }
@@ -276,47 +281,42 @@ async function loadActions(){
 
 // ══════════════════════════════════════════════════════════════
 // ACTION ITEMS — MATCHING
-// Col layout: 0=ID 1=Title 2=Keywords 3=Details 4=Category
-//             5=Urgency 6=Link 7=Link_Label 8=Owner 9=Due_Date 10=Active
 // ══════════════════════════════════════════════════════════════
 
-function matchActionItems(question){
-  if(!actionsData.length) return [];
-
+function matchActionItems(question) {
+  if (!actionsData.length) return [];
   const qLower = question.toLowerCase();
 
   const scored = actionsData.map(row => {
-    const keywords    = (row[2]||'').toLowerCase().split(',').map(k=>k.trim()).filter(Boolean);
+    const keywords    = (row[2] || '').toLowerCase().split(',').map(k => k.trim()).filter(Boolean);
     const keywordHits = keywords.filter(k => qLower.includes(k)).length;
-    const urgency     = (row[5]||'').toUpperCase();
-    const urgencyBoost = urgency==='HIGH' ? 3 : urgency==='MEDIUM' ? 1 : 0;
+    const urgency     = (row[5] || '').toUpperCase();
+    const urgencyBoost = urgency === 'HIGH' ? 3 : urgency === 'MEDIUM' ? 1 : 0;
     return { row, score: keywordHits + urgencyBoost, keywordHits };
   });
 
-  // Keyword-matched items first (sorted by score desc), up to 2
   const matched = scored
     .filter(x => x.keywordHits > 0)
-    .sort((a,b) => b.score - a.score)
-    .slice(0,2)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 2)
     .map(x => x.row);
 
-  if(matched.length) return matched;
+  if (matched.length) return matched;
 
-  // Proactive fallback: always show top HIGH urgency item even without keyword match
-  return actionsData.filter(row => (row[5]||'').toUpperCase()==='HIGH').slice(0,1);
+  // Fallback: show top HIGH urgency item even without keyword match
+  return actionsData.filter(row => (row[5] || '').toUpperCase() === 'HIGH').slice(0, 1);
 }
 
 // ══════════════════════════════════════════════════════════════
 // ACTION ITEMS — RENDERING
 // ══════════════════════════════════════════════════════════════
 
-function renderActionItems(actions){
-  if(!actions.length) return null;
+function renderActionItems(actions) {
+  if (!actions.length) return '';
 
   const container = document.getElementById('messages');
   const typing    = document.getElementById('typing');
-
-  const wrapper = document.createElement('div');
+  const wrapper   = document.createElement('div');
   wrapper.className = 'action-cards-wrapper';
 
   const header = document.createElement('div');
@@ -326,39 +326,39 @@ function renderActionItems(actions){
 
   actions.forEach(row => {
     const [id, title, , details, category, urgency, link, linkLabel] = row;
-    const color = urgency==='HIGH'   ? '#c0392b'
-                : urgency==='MEDIUM' ? '#d97706' : '#2c6fad';
+    const color = urgency === 'HIGH'   ? '#c0392b'
+                : urgency === 'MEDIUM' ? '#d97706' : '#2c6fad';
 
     const card = document.createElement('div');
-    card.className = 'action-card';
+    card.className  = 'action-card';
     card.style.borderLeft = `3px solid ${color}`;
 
     const urg = document.createElement('div');
-    urg.className = 'action-card-urgency';
+    urg.className  = 'action-card-urgency';
     urg.style.color = color;
-    urg.textContent = (urgency||'') + (category ? ' · ' + category : '');
+    urg.textContent = (urgency || '') + (category ? ' · ' + category : '');
     card.appendChild(urg);
 
     const ttl = document.createElement('div');
-    ttl.className = 'action-card-title';
-    ttl.textContent = title||'';
+    ttl.className  = 'action-card-title';
+    ttl.textContent = title || '';
     card.appendChild(ttl);
 
-    if(details){
+    if (details) {
       const det = document.createElement('div');
-      det.className = 'action-card-details';
+      det.className  = 'action-card-details';
       det.textContent = details;
       card.appendChild(det);
     }
 
-    if(link){
+    if (link) {
       const lnk = document.createElement('a');
-      lnk.className = 'action-card-link';
-      lnk.href = link;
-      lnk.target = '_blank';
-      lnk.rel = 'noopener noreferrer';
+      lnk.className  = 'action-card-link';
+      lnk.href        = link;
+      lnk.target      = '_blank';
+      lnk.rel         = 'noopener noreferrer';
       lnk.style.color = color;
-      lnk.textContent = '→ ' + (linkLabel||'Take action');
+      lnk.textContent = '→ ' + (linkLabel || 'Take action');
       card.appendChild(lnk);
     }
 
@@ -367,152 +367,169 @@ function renderActionItems(actions){
 
   container.insertBefore(wrapper, typing);
   scrollBottom();
-
-  // Return ID of first action for logging
-  return actions[0][0] || '';
+  return actions[0][0] || ''; // return ID of first action for logging
 }
 
 // ══════════════════════════════════════════════════════════════
 // UI HELPERS
 // ══════════════════════════════════════════════════════════════
 
-function updateCounter(){
-  const rem=maxQ-qCount;
-  document.getElementById('qlimit-text').textContent=`${rem} / ${maxQ} questions left`;
-  document.getElementById('qlimit-text').style.color=rem<=3?'#f87171':'#6b7280';
-  document.getElementById('qlimit-fill').style.width=`${(rem/maxQ)*100}%`;
-  document.getElementById('qlimit-fill').style.background=rem<=3?'#ef4444':'#dc2626';
+function updateCounter() {
+  const rem = maxQ - qCount;
+  document.getElementById('qlimit-text').textContent = `${rem} / ${maxQ} questions left`;
+  document.getElementById('qlimit-text').style.color = rem <= 3 ? '#f87171' : '#6b7280';
+  document.getElementById('qlimit-fill').style.width  = `${(rem / maxQ) * 100}%`;
+  document.getElementById('qlimit-fill').style.background = rem <= 3 ? '#ef4444' : '#dc2626';
 }
 
-function scrollBottom(){
-  const m=document.getElementById('messages');
-  m.scrollTop=m.scrollHeight;
+function scrollBottom() {
+  const m = document.getElementById('messages');
+  m.scrollTop = m.scrollHeight;
 }
 
-function linkify(text){
-  text = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function linkify(text) {
+  text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   text = text.replace(/(https?:\/\/[^\s<]+)/g,
     '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:#f87171;text-decoration:underline;">$1</a>');
   text = text.replace(/([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})/g,
     '<a href="mailto:$1" style="color:#f87171;text-decoration:underline;">$1</a>');
-  text = text.replace(/\n/g,'<br>');
+  text = text.replace(/\n/g, '<br>');
   return text;
 }
 
-function addMsg(role,text){
-  const container=document.getElementById('messages');
-  const typing=document.getElementById('typing');
-  const div=document.createElement('div');
-  div.className=`msg ${role}`;
-  if(role==='assistant'){
-    div.innerHTML=`<div class="msg-avatar">RR</div><div class="bubble assistant">${linkify(text)}</div>`;
+function addMsg(role, text) {
+  const container = document.getElementById('messages');
+  const typing    = document.getElementById('typing');
+  const div       = document.createElement('div');
+  div.className   = `msg ${role}`;
+  if (role === 'assistant') {
+    div.innerHTML = `<div class="msg-avatar">RR</div><div class="bubble assistant">${linkify(text)}</div>`;
   } else {
-    div.innerHTML=`<div class="bubble user">${text.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</div>`;
+    div.innerHTML = `<div class="bubble user">${text.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</div>`;
   }
-  container.insertBefore(div,typing);
+  container.insertBefore(div, typing);
   scrollBottom();
 }
 
-function setTyping(show){
-  document.getElementById('typing').style.display=show?'flex':'none';
+function setTyping(show) {
+  document.getElementById('typing').style.display = show ? 'flex' : 'none';
   scrollBottom();
 }
 
-function fillInput(text){
-  document.getElementById('msg-input').value=text;
+function fillInput(text) {
+  document.getElementById('msg-input').value = text;
   document.getElementById('msg-input').focus();
-  document.getElementById('suggestions').style.display='none';
+  document.getElementById('suggestions').style.display = 'none';
 }
 
 // ══════════════════════════════════════════════════════════════
-// FAQ MATCHING (client-side exact-answer injection)
+// FAQ MATCHING — client-side exact-answer injection
 // ══════════════════════════════════════════════════════════════
 
-function matchFAQ(question){
-  const q=question.toLowerCase().replace(/[^a-z0-9 ]/g,'');
-  const words=q.split(' ').filter(w=>w.length>3);
-  let best=null, bestScore=0;
-  (sheetData.faqs||[]).forEach(f=>{
-    if(!f.question||!f.answer) return;
-    const fq=f.question.toLowerCase().replace(/[^a-z0-9 ]/g,'');
-    let score=0;
-    words.forEach(w=>{ if(fq.includes(w)) score++; });
-    if(fq.includes(q.substring(0,20))) score+=3;
-    if(score>bestScore){ bestScore=score; best=f; }
+function matchFAQ(question) {
+  const q     = question.toLowerCase().replace(/[^a-z0-9 ]/g, '');
+  const words = q.split(' ').filter(w => w.length > 3);
+  let best = null, bestScore = 0;
+
+  (sheetData.faqs || []).forEach(f => {
+    if (!f.question || !f.answer) return;
+    const fq = f.question.toLowerCase().replace(/[^a-z0-9 ]/g, '');
+    let score = 0;
+    words.forEach(w => { if (fq.includes(w)) score++; });
+    if (fq.includes(q.substring(0, 20))) score += 3;
+    if (score > bestScore) { bestScore = score; best = f; }
   });
-  return bestScore>=2 ? best : null;
+
+  return bestScore >= 2 ? best : null;
 }
 
 // ══════════════════════════════════════════════════════════════
 // SEND MESSAGE
 // ══════════════════════════════════════════════════════════════
 
-async function sendMsg(){
-  if(busy||qCount>=maxQ) return;
-  const inp=document.getElementById('msg-input');
-  const text=inp.value.trim();
-  if(!text) return;
-  inp.value='';inp.style.height='44px';
-  document.getElementById('suggestions').style.display='none';
-  addMsg('user',text);
-  msgs.push({role:'user',content:text});
-  busy=true;qCount++;updateCounter();setTyping(true);
-  document.getElementById('send-btn').disabled=true;
+async function sendMsg() {
+  if (busy || qCount >= maxQ) return;
+  const inp  = document.getElementById('msg-input');
+  const text = inp.value.trim();
+  if (!text) return;
 
-  // FAQ injection — if a strong match exists, force exact answer
-  const faqMatch=matchFAQ(text);
+  inp.value = '';
+  inp.style.height = '44px';
+  document.getElementById('suggestions').style.display = 'none';
+
+  addMsg('user', text);
+  msgs.push({ role: 'user', content: text });
+  busy = true; qCount++; updateCounter(); setTyping(true);
+  document.getElementById('send-btn').disabled = true;
+
+  // ── FAQ injection ─────────────────────────────────────────
+  const faqMatch = matchFAQ(text);
   const messagesWithContext = faqMatch
-    ? [...msgs.slice(0,-1), {
-        role:'user',
-        content:`The user asked: "${text}"\n\nYou MUST deliver this exact answer — do not change the facts, do not paraphrase, do not omit anything:\n\n${faqMatch.answer}\n\nFormat it clearly but keep ALL facts exactly as written above.`
+    ? [...msgs.slice(0, -1), {
+        role: 'user',
+        content: `The user asked: "${text}"\n\nYou MUST deliver this exact answer — do not change the facts, do not paraphrase, do not omit anything:\n\n${faqMatch.answer}\n\nFormat it clearly but keep ALL facts exactly as written above.`
       }]
     : msgs;
 
-  let reply = '';
-  let actionServed = '';
+  // ── Pre-compute action items BEFORE fetch so ID can be logged ──
+  // FIX: action matching must happen before the API call so action_served
+  // can be included in the same POST body that chat.js forwards to the logger.
+  const actions      = matchActionItems(text);
+  const actionServed = actions.length ? (actions[0][0] || '') : '';
 
-  try{
-    const res=await fetch('/.netlify/functions/chat',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        messages: messagesWithContext,
-        session_id: SESSION_ID,
-        sheetData: sheetData,
-        cfg: cfg,
-        original_question: text   // clean question, not the injected prompt
+  let reply = '';
+
+  try {
+    const res  = await fetch('/.netlify/functions/chat', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages:          messagesWithContext,
+        session_id:        SESSION_ID,
+        sheetData:         sheetData,
+        cfg:               cfg,
+        original_question: text,          // clean user text, not injected prompt
+        action_served:     actionServed   // pre-computed action ID for logging
       })
     });
-    const data=await res.json();
-    reply=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('')
-      ||'I had trouble generating a response. Please try again.';
-    msgs.push({role:'assistant',content:reply});
-    addMsg('assistant',reply);
 
-    // ─── ACTION ITEMS ───────────────────────────────────
-    // Render action cards below the AI reply (non-blocking)
-    const actions = matchActionItems(text);
-    if(actions.length){
-      actionServed = renderActionItems(actions) || '';
+    const data = await res.json();
+
+    if (!res.ok) {
+      // Surface the real error in console for debugging, show friendly message to user
+      console.error('API error:', data.error || res.status);
+      reply = 'I had trouble generating a response. Please try again.';
+    } else {
+      reply = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('')
+           || 'I had trouble generating a response. Please try again.';
     }
 
-  } catch(e){
-    addMsg('assistant','Connection error. Please try again in a moment.');
+    msgs.push({ role: 'assistant', content: reply });
+    addMsg('assistant', reply);
+
+    // Render action cards below the AI reply
+    if (actions.length) renderActionItems(actions);
+
+  } catch (e) {
+    console.error('Fetch error:', e.message);
+    addMsg('assistant', 'Connection error. Please try again in a moment.');
   } finally {
-    busy=false;setTyping(false);
-    document.getElementById('send-btn').disabled=qCount>=maxQ;
+    busy = false; setTyping(false);
+    document.getElementById('send-btn').disabled = qCount >= maxQ;
     inp.focus();
   }
 
-  if(qCount>=maxQ){
-    const container=document.getElementById('messages');
-    const typing=document.getElementById('typing');
-    const lim=document.createElement('div');
-    lim.style.textAlign='center';lim.style.padding='8px 0';
-    lim.innerHTML=`<div style="display:inline-block;background:#1a1a2e;border:1px solid #2d2d44;border-radius:12px;padding:10px 16px;color:#9ca3af;font-size:13px">Session limit reached. Visit <a href="${cfg.org_website||'#'}" style="color:#f87171">${cfg.org_name||'Ridgefield Resistance'}</a> for more resources.</div>`;
-    container.insertBefore(lim,typing);
-    document.getElementById('msg-input').disabled=true;
-    document.getElementById('msg-input').placeholder='Session limit reached';
+  // ── Session limit message ─────────────────────────────────
+  if (qCount >= maxQ) {
+    const container = document.getElementById('messages');
+    const typing    = document.getElementById('typing');
+    const lim       = document.createElement('div');
+    lim.style.textAlign = 'center';
+    lim.style.padding   = '8px 0';
+    lim.innerHTML = `<div style="display:inline-block;background:#1a1a2e;border:1px solid #2d2d44;border-radius:12px;padding:10px 16px;color:#9ca3af;font-size:13px">Session limit reached. Visit <a href="${cfg.org_website || '#'}" style="color:#f87171">${cfg.org_name || 'Ridgefield Resistance'}</a> for more resources.</div>`;
+    container.insertBefore(lim, typing);
+    document.getElementById('msg-input').disabled    = true;
+    document.getElementById('msg-input').placeholder = 'Session limit reached';
     scrollBottom();
   }
 }
@@ -521,36 +538,37 @@ async function sendMsg(){
 // EVENT LISTENERS
 // ══════════════════════════════════════════════════════════════
 
-document.getElementById('msg-input').addEventListener('input',function(){
-  this.style.height='44px';
-  this.style.height=Math.min(this.scrollHeight,120)+'px';
+document.getElementById('msg-input').addEventListener('input', function () {
+  this.style.height = '44px';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
 });
-document.getElementById('msg-input').addEventListener('keydown',function(e){
-  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}
+document.getElementById('msg-input').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
 });
-document.getElementById('pw-input').addEventListener('keydown',e=>{if(e.key==='Enter') checkPw();});
-document.getElementById('pw-btn').addEventListener('click',checkPw);
+document.getElementById('pw-input').addEventListener('keydown', e => { if (e.key === 'Enter') checkPw(); });
+document.getElementById('pw-btn').addEventListener('click', checkPw);
 
 // ══════════════════════════════════════════════════════════════
 // PASSPHRASE GATE
 // ══════════════════════════════════════════════════════════════
 
-function checkPw(){
-  const val=document.getElementById('pw-input').value.trim().toUpperCase();
-  const correct=(cfg.subscriber_passphrase||'RESISTANCE2026').toUpperCase();
-  if(val===correct){
-    document.getElementById('gate').style.display='none';
-    const welcome=cfg.chatbot_welcome_message||"Hi! I'm the RR Assistant. How can I help you take action today?";
-    addMsg('assistant',welcome);
-    msgs.push({role:'assistant',content:welcome});
-    document.getElementById('suggestions').style.display='flex';
+function checkPw() {
+  const val     = document.getElementById('pw-input').value.trim().toUpperCase();
+  const correct = (cfg.subscriber_passphrase || 'RESISTANCE2026').toUpperCase();
+
+  if (val === correct) {
+    document.getElementById('gate').style.display = 'none';
+    const welcome = cfg.chatbot_welcome_message || "Hi! I'm the RR Assistant. How can I help you take action today?";
+    addMsg('assistant', welcome);
+    msgs.push({ role: 'assistant', content: welcome });
+    document.getElementById('suggestions').style.display = 'flex';
     document.getElementById('msg-input').focus();
   } else {
-    const err=document.getElementById('pw-err');
-    const inp=document.getElementById('pw-input');
-    err.style.display='block';
-    inp.style.borderColor='#ef4444';
-    setTimeout(()=>{err.style.display='none';inp.style.borderColor='#374151';},3000);
+    const err = document.getElementById('pw-err');
+    const inp = document.getElementById('pw-input');
+    err.style.display      = 'block';
+    inp.style.borderColor  = '#ef4444';
+    setTimeout(() => { err.style.display = 'none'; inp.style.borderColor = '#374151'; }, 3000);
   }
 }
 
@@ -563,4 +581,3 @@ document.getElementById('pw-input').focus();
 </script>
 </body>
 </html>
-
