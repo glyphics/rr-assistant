@@ -117,6 +117,7 @@
     <input type="password" id="gate-input" placeholder="Passphrase" onkeydown="if(event.key==='Enter')checkPass()"/>
     <button id="gate-btn" onclick="checkPass()">Enter</button>
     <p id="gate-error">Incorrect passphrase. Try again.</p>
+    <p style="margin-top:16px;font-size:10px;color:#374151;font-weight:900;">V1.6.2</p>
   </div>
 </div>
 
@@ -153,7 +154,7 @@
       </svg>
     </button>
   </div>
-  <p id="footer-text">Ridgefield Resistance · Your guide to local civic action &nbsp;·&nbsp; <span style="color:#dc2626;font-weight:900;font-size:12px;">V1.6.1</span></p>
+  <p id="footer-text">Ridgefield Resistance · Your guide to local civic action &nbsp;·&nbsp; <span style="color:#dc2626;font-weight:900;font-size:12px;">V1.6.2</span></p>
 </div>
 
 <script>
@@ -355,8 +356,8 @@ async function checkPass(){
     document.getElementById('gate').style.display = 'none';
     applyConfig();
     addBotMsg(cfg['chatbot_welcome_message'] || cfg['welcome_message'] || 'Welcome to Ridgefield Resistance. How can I help you take action today?');
-    // Ensure welcome is never clipped — force scroll to very top
-    setTimeout(() => { document.getElementById('chat-area').scrollTop = 0; }, 150);
+    // Wait for animation to fully complete before forcing scroll to top
+    setTimeout(() => { document.getElementById('chat-area').scrollTop = 0; }, 400);
     // Hold on welcome for 5s, then reveal action cards and slow scroll
     setTimeout(() => {
       const cards = renderActionCards();
