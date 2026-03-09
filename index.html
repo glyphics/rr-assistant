@@ -62,11 +62,11 @@
   .action-card:hover{border-color:#3b82f6;border-left-color:#3b82f6}
   .action-card-header{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
   .action-category{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;padding:2px 7px;border-radius:4px;background:#1e3a5f;color:#60a5fa}
-  .action-priority{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px}
-  .action-priority.p1{background:#450a0a;color:#fca5a5}
-  .action-priority.p2{background:#422006;color:#fcd34d}
-  .action-priority.p3{background:#052e16;color:#6ee7b7}
-  .action-priority.px{background:#1f2937;color:#9ca3af}
+  .action-priority-dot{display:inline-block;width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-right:4px}
+  .action-priority-dot.p1{background:#ef4444;box-shadow:0 0 6px #ef444488}
+  .action-priority-dot.p2{background:#eab308;box-shadow:0 0 6px #eab30888}
+  .action-priority-dot.p3{background:#22c55e;box-shadow:0 0 6px #22c55e88}
+  .action-priority-dot.px{background:#6b7280}
   .action-answer{font-size:13px;font-weight:600;color:#f3f4f6;margin-bottom:4px;line-height:1.4}
   .action-details{font-size:12px;color:#9ca3af;line-height:1.5;margin-bottom:8px}
   .action-link{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:#60a5fa;text-decoration:none;background:#1e3a5f;padding:5px 10px;border-radius:6px;transition:background .15s}
@@ -362,37 +362,49 @@ function buildContext(){
 // ══════════════════════════════════════════════════════════
 // ACTION CARDS RENDERER
 // ══════════════════════════════════════════════════════════
-function priorityBadge(p){
+function getPriority(r){
+  // Try every likely column name variant the sheet might export
+  return r['Priority'] || r['priority'] || r['PRIORITY'] ||
+         r['ID']?.match ? '' : ''; // last resort — will show nothing
+}
+
+function priorityDot(p){
   const n = parseInt(p);
-  if(n === 1) return `<span class="action-priority p1">🔴 Priority 1</span>`;
-  if(n === 2) return `<span class="action-priority p2">🟡 Priority 2</span>`;
-  if(n === 3) return `<span class="action-priority p3">🟢 Priority 3</span>`;
-  if(p)       return `<span class="action-priority px">Priority ${escHtml(String(p))}</span>`;
-  return '';
+  if(n === 1) return `<span class="action-priority-dot p1" title="Priority 1"></span>`;
+  if(n === 2) return `<span class="action-priority-dot p2" title="Priority 2"></span>`;
+  if(n === 3) return `<span class="action-priority-dot p3" title="Priority 3"></span>`;
+  if(p && !isNaN(n)) return `<span class="action-priority-dot px" title="Priority ${n}"></span>`;
+  return `<span class="action-priority-dot px" title="Priority unset"></span>`;
 }
 
 function renderActionCards(){
   if(!activeActions.length) return;
+  // Debug: log first row's keys so we can see exact column names
+  if(activeActions[0]) console.log('Actions row keys:', Object.keys(activeActions[0]), activeActions[0]);
   const wrapper = document.createElement('div');
   wrapper.className = 'action-cards-wrapper';
   wrapper.innerHTML = `<div class="action-cards-label">📣 Take Action Now</div><div class="action-cards-scroll"></div>`;
   const scroll = wrapper.querySelector('.action-cards-scroll');
   activeActions.forEach(r => {
+    const p        = r['Priority'] || r['priority'] || '';
     const hasLink  = r['Link'] && r['Link'].trim();
-    const linkLabel = r['Link_Label']||r['Link Label']||'Take Action';
+    const linkLabel = r['Link_Label'] || r['Link Label'] || 'Take Action';
+    const pn       = parseInt(p);
+    const borderCol = pn===1 ? '#ef4444' : pn===2 ? '#eab308' : pn===3 ? '#22c55e' : '#2563eb';
     const card = document.createElement('div');
     card.className = 'action-card';
+    card.style.borderLeftColor = borderCol;
     card.innerHTML = `
       <div class="action-card-header">
-        ${priorityBadge(r['Priority'])}
-        ${r['Category']?`<span class="action-category">${escHtml(r['Category'])}</span>`:''}
+        ${priorityDot(p)}
+        ${r['Category'] ? `<span class="action-category">${escHtml(r['Category'])}</span>` : ''}
       </div>
-      <div class="action-answer">${escHtml(r['Answer']||'')}</div>
-      ${r['Details']?`<div class="action-details">${escHtml(r['Details'])}</div>`:''}
-      ${hasLink?`<a class="action-link" href="${escHtml(r['Link'])}" target="_blank" rel="noopener">
+      <div class="action-answer">${escHtml(r['Answer'] || '')}</div>
+      ${r['Details'] ? `<div class="action-details">${escHtml(r['Details'])}</div>` : ''}
+      ${hasLink ? `<a class="action-link" href="${escHtml(r['Link'])}" target="_blank" rel="noopener">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
         ${escHtml(linkLabel)}
-      </a>`:''}
+      </a>` : ''}
     `;
     scroll.appendChild(card);
   });
