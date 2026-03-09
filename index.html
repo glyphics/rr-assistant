@@ -199,8 +199,9 @@ function parseMMDDYYYY(str){
 }
 
 function isActionLive(row){
-  if((row['Active']||'').trim() !== 'True') return false;
-  const exp = parseMMDDYYYY(row['Expires Date']);
+  const activeVal = (row['Active']||'').trim().toLowerCase();
+  if(activeVal !== 'true') return false;
+  const exp = parseMMDDYYYY(row['Expires Date']||row['Expires_Date']||'');
   if(exp){
     const today = new Date();
     today.setHours(0,0,0,0);
@@ -234,7 +235,12 @@ async function loadSheets(){
   });
   cfg = {};
   (sheetData.config||[]).forEach(r => {
-    if(r['Key']) cfg[r['Key'].trim()] = (r['Value']||'').trim();
+    // Accept any casing of the Key/Value column headers (Key, key, KEY, etc.)
+    const keyCol = Object.keys(r).find(k => k.toLowerCase() === 'key');
+    const valCol = Object.keys(r).find(k => k.toLowerCase() === 'value');
+    const k = keyCol ? r[keyCol].trim() : '';
+    const v = valCol ? r[valCol].trim() : '';
+    if(k) cfg[k] = v;
   });
   activeActions = getActiveActions(sheetData.actions || []);
   setStatus('online');
@@ -247,12 +253,22 @@ async function loadSheets(){
 async function checkPass(){
   const val = document.getElementById('gate-input').value.trim();
   if(!val) return;
-  if(!Object.keys(sheetData).length) await loadSheets();
-  const stored = cfg['subscriber_passphrase'] || 'RESISTANCE2026';
-  if(val.toUpperCase() === stored.toUpperCase()){
+
+  // If sheets haven't loaded yet, wait for them
+  if(!Object.keys(sheetData).length){
+    document.getElementById('gate-btn').textContent = 'Loading...';
+    document.getElementById('gate-btn').disabled = true;
+    await loadSheets();
+    document.getElementById('gate-btn').textContent = 'Enter';
+    document.getElementById('gate-btn').disabled = false;
+  }
+
+  // Passphrase check — fully case-insensitive both directions
+  const stored = (cfg['subscriber_passphrase'] || 'RESISTANCE2026').trim();
+  if(val.trim().toUpperCase() === stored.toUpperCase()){
     document.getElementById('gate').style.display = 'none';
     addBotMsg(cfg['welcome_message'] || 'Welcome to Ridgefield Resistance. How can I help you take action today?');
-    renderActionCards(); // show actions on first load
+    renderActionCards();
   } else {
     document.getElementById('gate-error').style.display = 'block';
   }
