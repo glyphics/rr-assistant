@@ -586,6 +586,14 @@ function autoResize(el){
 }
 
 // ══════════════════════════════════════════════════════════
+// DETECT ACTION QUERIES
+// ══════════════════════════════════════════════════════════
+function isActionQuery(text){
+  const t = text.toLowerCase();
+  return /\b(action|actions|take action|what can i do|how can i help|what should i do|current actions|this week|get involved|do something|make a difference|call|contact|email|sign|petition|attend|show up)\b/.test(t);
+}
+
+// ══════════════════════════════════════════════════════════
 // SEND MESSAGE
 // ══════════════════════════════════════════════════════════
 async function sendMsg(){
@@ -632,7 +640,8 @@ async function sendMsg(){
       const reply = data.content?.[0]?.text || 'No response received.';
       msgs.push({ role:'assistant', content: reply });
       addBotMsg(reply);
-      renderActionCards(); // ← proactive: show actions after EVERY response
+      // Only show action cards if user explicitly asked about actions
+      if(isActionQuery(text)) renderActionCards();
       qCount++;
     }
   } catch(err){
