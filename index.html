@@ -153,7 +153,7 @@
       </svg>
     </button>
   </div>
-  <p id="footer-text">Ridgefield Resistance · Your guide to local civic action &nbsp;·&nbsp; <span style="color:#374151">v4</span></p>
+  <p id="footer-text">Ridgefield Resistance · Your guide to local civic action &nbsp;·&nbsp; <span style="color:#dc2626;font-weight:900;font-size:16px;">V5</span></p>
 </div>
 
 <script>
@@ -598,13 +598,11 @@ function slowScrollBottom(){
 function scrollToTop(el){
   if(!el) return;
   requestAnimationFrame(() => {
-    const ca    = document.getElementById('chat-area');
-    const caTop = ca.getBoundingClientRect().top;
-    const elTop = el.getBoundingClientRect().top;
-    const before = ca.scrollTop;
-    const delta = (elTop - caTop) - 8;
-    ca.scrollTop += delta;
-    console.log('[scrollToTop] caTop='+Math.round(caTop)+' elTop='+Math.round(elTop)+' delta='+Math.round(delta)+' scrollBefore='+Math.round(before)+' scrollAfter='+Math.round(ca.scrollTop)+' scrollHeight='+ca.scrollHeight+' clientHeight='+ca.clientHeight);
+    const ca = document.getElementById('chat-area');
+    const caRect = ca.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    ca.scrollTop = ca.scrollTop + (elRect.top - caRect.top) - 8;
+    console.log('[V5 scrollToTop] scrollTop now:', ca.scrollTop, 'elTop:', Math.round(elRect.top), 'caTop:', Math.round(caRect.top));
   });
 }
 
