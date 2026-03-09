@@ -595,7 +595,7 @@ function slowScrollBottom(){
   const end   = ca.scrollHeight;
   const dist  = end - start;
   if(dist <= 0) return;
-  const duration = 1800; // always 1.8 seconds regardless of distance
+  const duration = 3000; // 3 seconds
   let startTime = null;
   function step(ts){
     if(!startTime) startTime = ts;
