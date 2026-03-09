@@ -153,7 +153,7 @@
       </svg>
     </button>
   </div>
-  <p id="footer-text">Ridgefield Resistance · Your guide to local civic action &nbsp;·&nbsp; <span style="color:#dc2626;font-weight:900;font-size:12px;">V1.6.0</span></p>
+  <p id="footer-text">Ridgefield Resistance · Your guide to local civic action &nbsp;·&nbsp; <span style="color:#dc2626;font-weight:900;font-size:12px;">V1.6.1</span></p>
 </div>
 
 <script>
@@ -355,11 +355,8 @@ async function checkPass(){
     document.getElementById('gate').style.display = 'none';
     applyConfig();
     addBotMsg(cfg['chatbot_welcome_message'] || cfg['welcome_message'] || 'Welcome to Ridgefield Resistance. How can I help you take action today?');
-    // Scroll welcome message into view with offset
-    setTimeout(() => {
-      const ca = document.getElementById('chat-area');
-      ca.scrollTop = 0;
-    }, 100);
+    // Ensure welcome is never clipped — force scroll to very top
+    setTimeout(() => { document.getElementById('chat-area').scrollTop = 0; }, 150);
     // Hold on welcome for 5s, then reveal action cards and slow scroll
     setTimeout(() => {
       const cards = renderActionCards();
