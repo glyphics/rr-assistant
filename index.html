@@ -153,7 +153,7 @@
       </svg>
     </button>
   </div>
-  <p id="footer-text">Ridgefield Resistance · Your guide to local civic action</p>
+  <p id="footer-text">Ridgefield Resistance · Your guide to local civic action &nbsp;·&nbsp; <span style="color:#374151">v4</span></p>
 </div>
 
 <script>
@@ -598,11 +598,13 @@ function slowScrollBottom(){
 function scrollToTop(el){
   if(!el) return;
   const ca = document.getElementById('chat-area');
-  // Sum heights of all siblings before this element
-  let top = 0;
+  const style = window.getComputedStyle(ca);
+  const padTop = parseInt(style.paddingTop) || 16;
+  const gap    = parseInt(style.gap) || 12;
+  let top = padTop;
   let sibling = el.previousElementSibling;
   while(sibling){
-    top += sibling.offsetHeight + 12; // 12 = gap between messages
+    top += sibling.offsetHeight + gap;
     sibling = sibling.previousElementSibling;
   }
   ca.scrollTop = top;
