@@ -221,8 +221,10 @@ function getActiveActions(all){
   return all
     .filter(isActionLive)
     .sort((a,b) => {
-      const pa = parseInt(getCol(a,'priority')) || 999;
-      const pb = parseInt(getCol(b,'priority')) || 999;
+      const rawA = getCol(a,'priority').match(/\d+/);
+      const rawB = getCol(b,'priority').match(/\d+/);
+      const pa = rawA ? parseInt(rawA[0]) : 999;
+      const pb = rawB ? parseInt(rawB[0]) : 999;
       return pa - pb;
     });
 }
@@ -259,26 +261,6 @@ async function loadSheets(){
     if(k) cfg[k] = v;
   });
   activeActions = getActiveActions(sheetData.actions || []);
-
-  // ── DIAGNOSTICS (remove after confirmed working) ──────────
-  console.log('=== RESISTCHAT DIAGNOSTICS ===');
-  console.log('Tabs loaded:', Object.keys(sheetData));
-  console.log('Config chatbot_name:', cfg['chatbot_name']);
-  console.log('Config subscriber_passphrase:', cfg['subscriber_passphrase']);
-  const rawActions = sheetData.actions || [];
-  console.log('Raw actions row count:', rawActions.length);
-  if(rawActions[0]){
-    console.log('Actions column headers:', Object.keys(rawActions[0]));
-    console.log('First raw action row:', rawActions[0]);
-  }
-  rawActions.forEach((r,i) => {
-    const activeCol = Object.keys(r).find(k => k.toLowerCase().trim() === 'active');
-    const activeVal = activeCol ? r[activeCol] : '(column not found)';
-    console.log(`Row ${i}: Active col="${activeCol}" val="${activeVal}" → live=${isActionLive(r)}`);
-  });
-  console.log('activeActions after filter:', activeActions.length);
-  console.log('==============================');
-  // ──────────────────────────────────────────────────────────
 
   // Apply config to UI immediately after sheets load
   applyConfig();
@@ -322,51 +304,10 @@ async function checkPass(){
     document.getElementById('gate').style.display = 'none';
     applyConfig(); // ← re-apply after gate hides to guarantee header is correct
     addBotMsg(cfg['chatbot_welcome_message'] || cfg['welcome_message'] || 'Welcome to Ridgefield Resistance. How can I help you take action today?');
-    showDebugPanel(); // ← temporary: visible on-screen diagnostics
     renderActionCards();
   } else {
     document.getElementById('gate-error').style.display = 'block';
   }
-}
-
-// ══════════════════════════════════════════════════════════
-// VISIBLE DEBUG PANEL (remove after confirmed working)
-// ══════════════════════════════════════════════════════════
-function showDebugPanel(){
-  const rawActions = sheetData.actions || [];
-  const lines = [];
-  lines.push(`chatbot_name cfg value: "${cfg['chatbot_name'] || '(empty)'}"`);
-  lines.push(`subscriber_passphrase: "${cfg['subscriber_passphrase'] || '(empty)'}"`);
-  lines.push(`Raw Actions rows loaded: ${rawActions.length}`);
-  if(rawActions[0]){
-    lines.push(`Actions columns: ${Object.keys(rawActions[0]).join(' | ')}`);
-    lines.push(`First row values:`);
-    Object.entries(rawActions[0]).forEach(([k,v]) => lines.push(`  "${k}" = "${v}"`));
-  } else {
-    lines.push('⚠️ NO ROWS in Actions tab — tab may not be published');
-  }
-  lines.push(`Active actions after filter: ${activeActions.length}`);
-  rawActions.slice(0,5).forEach((r,i) => {
-    const ac = Object.keys(r).find(k => k.toLowerCase().trim()==='active') || '(no active col)';
-    const av = r[ac] || '';
-    const pc = Object.keys(r).find(k => k.toLowerCase().trim()==='priority') || '(no priority col)';
-    const pv = r[pc] || '';
-    lines.push(`Row ${i}: active="${av}" priority="${pv}" live=${isActionLive(r)}`);
-  });
-
-  const panel = document.createElement('div');
-  panel.style.cssText = 'background:#0d2010;border:1px solid #166534;border-radius:8px;padding:12px 14px;font-size:11px;font-family:monospace;color:#6ee7b7;white-space:pre-wrap;word-break:break-all;margin:4px 0;width:100%;max-width:600px;align-self:flex-start;';
-  panel.innerHTML = `<strong style="color:#4ade80">🔧 DEBUG (deploy one more time to remove)</strong>\n\n` + lines.join('\n');
-
-  // Add dismiss button
-  const btn = document.createElement('button');
-  btn.textContent = '✕ dismiss';
-  btn.style.cssText = 'margin-top:8px;background:#166534;border:none;color:#6ee7b7;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;display:block;';
-  btn.onclick = () => panel.remove();
-  panel.appendChild(btn);
-
-  document.getElementById('chat-area').appendChild(panel);
-  scrollBottom();
 }
 
 // ══════════════════════════════════════════════════════════
@@ -449,7 +390,10 @@ function buildContext(){
 // ACTION CARDS RENDERER
 // ══════════════════════════════════════════════════════════
 function getPriority(r){
-  return getCol(r, 'priority');
+  const raw = getCol(r, 'priority');
+  // Handles "1", "2", "Priority 1", "Priority 2", etc.
+  const match = raw.match(/\d+/);
+  return match ? match[0] : '';
 }
 
 function priorityDot(p){
@@ -462,15 +406,6 @@ function priorityDot(p){
 
 function renderActionCards(){
   if(!activeActions.length) return;
-  if(activeActions[0]){
-    const keys = Object.keys(activeActions[0]);
-    console.log('Actions columns:', keys);
-    keys.forEach(k => {
-      if(k.toLowerCase().includes('prior'))
-        console.log(`  Priority column: "${k}" = "${activeActions[0][k]}"`);
-    });
-    console.log('First row full:', activeActions[0]);
-  }
   const wrapper = document.createElement('div');
   wrapper.className = 'action-cards-wrapper';
   wrapper.innerHTML = `<div class="action-cards-label">📣 Take Action Now</div><div class="action-cards-scroll"></div>`;
@@ -481,7 +416,6 @@ function renderActionCards(){
     const borderCol = pn===1 ? '#ef4444' : pn===2 ? '#eab308' : pn===3 ? '#22c55e' : '#2563eb';
     const hasLink   = r['Link'] && r['Link'].trim();
     const linkLabel = r['Link_Label'] || r['Link Label'] || 'Take Action';
-    console.log(`  Card p="${p}" pn=${pn} border=${borderCol}`);
     const card = document.createElement('div');
     card.className = 'action-card';
     card.style.borderLeftColor = borderCol;
