@@ -102,7 +102,6 @@
     <input type="password" id="gate-input" placeholder="Passphrase" onkeydown="if(event.key==='Enter')checkPass()"/>
     <button id="gate-btn" onclick="checkPass()">Enter</button>
     <p id="gate-error">Incorrect passphrase. Try again.</p>
-    <pre id="cfg-debug" style="display:none;margin-top:14px;text-align:left;font-size:10px;color:#6ee7b7;background:#0d1f18;border:1px solid #166534;border-radius:6px;padding:10px;white-space:pre-wrap;word-break:break-all;max-height:180px;overflow-y:auto;"></pre>
   </div>
 </div>
 
@@ -238,29 +237,20 @@ async function loadSheets(){
   (sheetData.config||[]).forEach(r => {
     const cols = Object.keys(r);
     if(cols.length < 2) return;
-    // Strategy 1: column literally named 'key' (any case)
-    const keyCol = cols.find(c => c.toLowerCase() === 'key');
-    const valCol = cols.find(c => c.toLowerCase() === 'value');
+    // Support both naming conventions: setting_key/setting_value OR key/value
+    const keyCol = cols.find(c => c.toLowerCase() === 'setting_key' || c.toLowerCase() === 'key');
+    const valCol = cols.find(c => c.toLowerCase() === 'setting_value' || c.toLowerCase() === 'value');
     if(keyCol && valCol){
       const k = (r[keyCol]||'').trim();
       const v = (r[valCol]||'').trim();
       if(k) cfg[k] = v;
       return;
     }
-    // Strategy 2: no header match — use first col as key, second as value
+    // Fallback: treat first col as key, second as value
     const k = (r[cols[0]]||'').trim();
     const v = (r[cols[1]]||'').trim();
     if(k) cfg[k] = v;
   });
-  // Debug: show what was read from Config tab on the gate screen
-  const dbg = document.getElementById('cfg-debug');
-  if(dbg){
-    const rows = sheetData.config||[];
-    const headers = rows.length ? Object.keys(rows[0]).join(' | ') : 'no rows loaded';
-    const pairs   = Object.entries(cfg).map(([k,v])=>`${k} = "${v}"`).join('\n') || '(empty — nothing parsed)';
-    dbg.textContent = `Config column headers: ${headers}\n\nParsed cfg:\n${pairs}`;
-    dbg.style.display = 'block';
-  }
   activeActions = getActiveActions(sheetData.actions || []);
   setStatus('online');
   return true;
@@ -286,7 +276,7 @@ async function checkPass(){
   const stored = (cfg['subscriber_passphrase'] || 'RESISTANCE2026').trim();
   if(val.trim().toUpperCase() === stored.toUpperCase()){
     document.getElementById('gate').style.display = 'none';
-    addBotMsg(cfg['welcome_message'] || 'Welcome to Ridgefield Resistance. How can I help you take action today?');
+    addBotMsg(cfg['chatbot_welcome_message'] || cfg['welcome_message'] || 'Welcome to Ridgefield Resistance. How can I help you take action today?');
     renderActionCards();
   } else {
     document.getElementById('gate-error').style.display = 'block';
@@ -303,7 +293,10 @@ function setStatus(s){ document.getElementById('status-dot').className = s; }
 // ══════════════════════════════════════════════════════════
 function buildContext(){
   const today = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-  let ctx = `You are the RR Assistant for Ridgefield Resistance, a local civic action organization. Today is ${today}.\n\n`;
+  const orgName = cfg['org_name'] || 'Ridgefield Resistance';
+  const geoFocus = cfg['geographic_focus'] || 'Ridgefield, CT';
+  const outOfScope = cfg['out_of_scope_response'] || "That's outside my focus area.";
+  let ctx = `You are ${cfg['chatbot_name']||'RR Assistant'}, the civic action chatbot for ${orgName}. Today is ${today}.\nGeographic focus: ${geoFocus}\nOut-of-scope response to use: "${outOfScope}"\n\n`;
 
   if(sheetData.officials?.length){
     ctx += '## ELECTED OFFICIALS\n';
@@ -362,7 +355,7 @@ function buildContext(){
     ctx += '\n';
   }
 
-  ctx += `Answer questions helpfully and concisely. Use the data above. When suggesting actions, prioritize Current Actions listed above. If you don't know something, say so honestly.`;
+  ctx += `Answer questions helpfully and concisely. Use the data above. When suggesting actions, prioritize Current Actions listed above. Stay within the geographic focus. If you don't know something, say so honestly.`;
   return ctx;
 }
 
