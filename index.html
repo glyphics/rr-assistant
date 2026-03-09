@@ -597,11 +597,14 @@ function slowScrollBottom(){
 // Scroll so the given element appears at the top of the chat area
 function scrollToTop(el){
   if(!el) return;
-  const ca = document.getElementById('chat-area');
-  const elRect = el.getBoundingClientRect();
-  const caRect = ca.getBoundingClientRect();
-  const offset = ca.scrollTop + (elRect.top - caRect.top) - 8;
-  ca.scrollTo({ top: offset, behavior: 'smooth' });
+  // rAF ensures layout is complete before we measure positions
+  requestAnimationFrame(() => {
+    const ca = document.getElementById('chat-area');
+    const elRect = el.getBoundingClientRect();
+    const caRect = ca.getBoundingClientRect();
+    const target = ca.scrollTop + (elRect.top - caRect.top) - 8;
+    ca.scrollTo({ top: target, behavior: 'smooth' });
+  });
 }
 
 function fillInput(text){
@@ -670,8 +673,8 @@ async function sendMsg(){
       const reply = data.content?.[0]?.text || 'No response received.';
       msgs.push({ role:'assistant', content: reply });
       addBotMsg(reply);
-      // Scroll question to top — response sits below, user scrolls through it
-      scrollToTop(userMsgEl);
+      // Double rAF — wait for bot message to fully reflow before scrolling question to top
+      requestAnimationFrame(() => requestAnimationFrame(() => scrollToTop(userMsgEl)));
       if(isActionQuery(text)){
         const cards = renderActionCards();
         if(cards) setTimeout(() => scrollToTop(cards), 80);
