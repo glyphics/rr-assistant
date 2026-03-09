@@ -601,8 +601,10 @@ function scrollToTop(el){
     const ca    = document.getElementById('chat-area');
     const caTop = ca.getBoundingClientRect().top;
     const elTop = el.getBoundingClientRect().top;
-    // delta = how far el is below the visible top of ca — add to current scrollTop
-    ca.scrollTop += (elTop - caTop) - 8;
+    const before = ca.scrollTop;
+    const delta = (elTop - caTop) - 8;
+    ca.scrollTop += delta;
+    console.log('[scrollToTop] caTop='+Math.round(caTop)+' elTop='+Math.round(elTop)+' delta='+Math.round(delta)+' scrollBefore='+Math.round(before)+' scrollAfter='+Math.round(ca.scrollTop)+' scrollHeight='+ca.scrollHeight+' clientHeight='+ca.clientHeight);
   });
 }
 
