@@ -161,28 +161,65 @@ let sheetData = {}, cfg = {}, msgs = [], qCount = 0, maxQ = 10, busy = false;
 let activeActions = []; // filtered, live actions
 
 // ══════════════════════════════════════════════════════════
-// CSV PARSING
+// CSV PARSING — RFC 4180 compliant
+// Handles commas, newlines, and quotes inside quoted fields
 // ══════════════════════════════════════════════════════════
 function csvUrl(gid){ return `${BASE}?gid=${gid}&single=true&output=csv`; }
 
-function splitLine(line){
-  const res=[]; let cur=''; let q=false;
-  for(let i=0;i<line.length;i++){
-    if(line[i]==='"'){q=!q;}
-    else if(line[i]===',' && !q){res.push(cur);cur='';}
-    else cur+=line[i];
-  }
-  res.push(cur); return res;
-}
-
 function parseCSV(text){
-  const lines = text.split('\n');
-  if(lines.length < 2) return [];
-  const headers = splitLine(lines[0]).map(h => h.replace(/"/g,'').trim());
-  return lines.slice(1).filter(l => l.trim()).map(line => {
-    const vals = splitLine(line);
+  // Normalize line endings
+  text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  const rows = [];
+  let i = 0;
+  const n = text.length;
+
+  while(i < n){
+    const row = [];
+    // Parse one row
+    while(i < n){
+      let cell = '';
+      if(text[i] === '"'){
+        // Quoted field — consume until closing unescaped quote
+        i++; // skip opening quote
+        while(i < n){
+          if(text[i] === '"'){
+            if(i+1 < n && text[i+1] === '"'){
+              // Escaped quote ""
+              cell += '"';
+              i += 2;
+            } else {
+              i++; // skip closing quote
+              break;
+            }
+          } else {
+            cell += text[i++];
+          }
+        }
+      } else {
+        // Unquoted field — read until comma or newline
+        while(i < n && text[i] !== ',' && text[i] !== '\n'){
+          cell += text[i++];
+        }
+      }
+      row.push(cell.trim());
+      if(i < n && text[i] === ','){
+        i++; // skip comma, continue to next field
+      } else {
+        break; // newline or end of text — row done
+      }
+    }
+    // Skip newline
+    if(i < n && text[i] === '\n') i++;
+    // Skip completely empty rows
+    if(row.length > 0 && row.some(c => c !== '')) rows.push(row);
+  }
+
+  if(rows.length < 2) return [];
+  const headers = rows[0].map(h => h.replace(/^"|"$/g,'').trim());
+  return rows.slice(1).map(vals => {
     const obj = {};
-    headers.forEach((h,j) => { obj[h] = (vals[j]||'').replace(/"/g,'').trim(); });
+    headers.forEach((h, j) => { obj[h] = (vals[j] || '').trim(); });
     return obj;
   });
 }
