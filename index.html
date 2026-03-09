@@ -302,8 +302,29 @@ async function checkPass(){
   const stored = (cfg['subscriber_passphrase'] || 'RESISTANCE2026').trim();
   if(val.trim().toUpperCase() === stored.toUpperCase()){
     document.getElementById('gate').style.display = 'none';
-    applyConfig(); // ← re-apply after gate hides to guarantee header is correct
+    applyConfig();
     addBotMsg(cfg['chatbot_welcome_message'] || cfg['welcome_message'] || 'Welcome to Ridgefield Resistance. How can I help you take action today?');
+
+    // ── TEMP DEBUG: shows raw vs filtered count + every row's active/expires/priority ──
+    const raw = sheetData.actions || [];
+    let dbgLines = [`Actions tab: ${raw.length} raw rows | ${activeActions.length} passing filter`];
+    raw.forEach((r,i) => {
+      const active  = getCol(r,'active');
+      const expires = getCol(r,'expires date') || getCol(r,'expires_date');
+      const prio    = getCol(r,'priority');
+      const answer  = (getCol(r,'answer')||'').substring(0,30);
+      const exp     = parseMMDDYYYY(expires);
+      const today   = new Date(); today.setHours(0,0,0,0);
+      const expStatus = !expires ? 'no expiry' : !exp ? '⚠️ date parse failed: "'+expires+'"' : exp < today ? '⚠️ EXPIRED' : 'ok';
+      dbgLines.push(`Row ${i+1}: active="${active}" priority="${prio}" expires="${expires}" (${expStatus}) → ${isActionLive(r)?'✅ LIVE':'❌ FILTERED'} | "${answer}"`);
+    });
+    const dbg = document.createElement('div');
+    dbg.style.cssText = 'background:#0d1a2e;border:1px solid #1e3a5f;border-radius:8px;padding:10px 12px;font-size:10px;font-family:monospace;color:#93c5fd;white-space:pre-wrap;width:100%;max-width:600px;align-self:flex-start;margin:4px 0;';
+    const dismiss = '<button onclick="this.parentElement.remove()" style="float:right;background:#1e3a5f;border:none;color:#93c5fd;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:10px;">✕</button>';
+    dbg.innerHTML = dismiss + '🔧 ' + dbgLines.join('\n');
+    document.getElementById('chat-area').appendChild(dbg);
+    // ── END TEMP DEBUG ──
+
     renderActionCards();
   } else {
     document.getElementById('gate-error').style.display = 'block';
