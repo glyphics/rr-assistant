@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>RR Assistant — Ridgefield Resistance [v3]</title>
+<title>RR Assistant — Ridgefield Resistance</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:system-ui,-apple-system,sans-serif;background:#0f0f1a;color:#e5e7eb;height:100vh;display:flex;flex-direction:column;overflow:hidden}
@@ -598,10 +598,14 @@ function slowScrollBottom(){
 function scrollToTop(el){
   if(!el) return;
   const ca = document.getElementById('chat-area');
-  // Flash border red briefly so we can confirm this function fires
-  ca.style.outline = '3px solid red';
-  setTimeout(() => ca.style.outline = '', 600);
-  ca.scrollTop = el.offsetTop - 8;
+  // Sum heights of all siblings before this element
+  let top = 0;
+  let sibling = el.previousElementSibling;
+  while(sibling){
+    top += sibling.offsetHeight + 12; // 12 = gap between messages
+    sibling = sibling.previousElementSibling;
+  }
+  ca.scrollTop = top;
 }
 
 function fillInput(text){
@@ -626,15 +630,7 @@ function isActionQuery(text){
 // SEND MESSAGE
 // ══════════════════════════════════════════════════════════
 async function sendMsg(){
-  // DIAGNOSTIC: flash yellow=called, orange=busy blocked, disappears=proceeding
-  const ca = document.getElementById('chat-area');
-  ca.style.outline = '4px solid yellow';
-  setTimeout(() => ca.style.outline = '', 800);
-  if(busy){
-    ca.style.outline = '4px solid orange';
-    setTimeout(() => ca.style.outline = '', 800);
-    return;
-  }
+  if(busy) return;
   const inp = document.getElementById('msg-input');
   const text = inp.value.trim();
   if(!text) return;
