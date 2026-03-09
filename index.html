@@ -596,8 +596,11 @@ function slowScrollBottom(){
 
 // Scroll so the given element appears at the top of the chat area
 function scrollToTop(el){
+  if(!el) return;
   const ca = document.getElementById('chat-area');
-  const offset = el.offsetTop - ca.offsetTop - 8;
+  const elRect = el.getBoundingClientRect();
+  const caRect = ca.getBoundingClientRect();
+  const offset = ca.scrollTop + (elRect.top - caRect.top) - 8;
   ca.scrollTo({ top: offset, behavior: 'smooth' });
 }
 
@@ -640,7 +643,6 @@ async function sendMsg(){
 
   addUserMsg(text);
   const userMsgEl = document.getElementById('chat-area').lastElementChild;
-  scrollToTop(userMsgEl);
   msgs.push({ role:'user', content: text });
   addTypingIndicator();
   setStatus('loading');
@@ -668,11 +670,11 @@ async function sendMsg(){
       const reply = data.content?.[0]?.text || 'No response received.';
       msgs.push({ role:'assistant', content: reply });
       addBotMsg(reply);
-      // Re-scroll question to top so response flows naturally below — user scrolls through it
-      setTimeout(() => scrollToTop(userMsgEl), 60);
+      // Scroll question to top — response sits below, user scrolls through it
+      scrollToTop(userMsgEl);
       if(isActionQuery(text)){
         const cards = renderActionCards();
-        if(cards) setTimeout(() => scrollToTop(cards), 60);
+        if(cards) setTimeout(() => scrollToTop(cards), 80);
       }
       qCount++;
     }
