@@ -329,9 +329,7 @@ function applyConfig(){
   const org  = cfg['org_name']     || '';
   if(name) document.getElementById('header-title').textContent = name;
   if(org)  document.getElementById('header-sub').textContent   = org;
-  // Also update footer tagline if config has one
-  const tagline = cfg['chatbot_tagline'] || '';
-  if(tagline) document.getElementById('footer-text').textContent = tagline;
+  // DO NOT overwrite footer-text — it contains version stamp HTML
   // Update max questions from config
   const mq = parseInt(cfg['max_questions_per_session']);
   if(mq > 0) maxQ = mq;
@@ -597,13 +595,14 @@ function slowScrollBottom(){
 
 function scrollToTop(el){
   if(!el) return;
-  requestAnimationFrame(() => {
+  setTimeout(() => {
     const ca = document.getElementById('chat-area');
     const caRect = ca.getBoundingClientRect();
     const elRect = el.getBoundingClientRect();
-    ca.scrollTop = ca.scrollTop + (elRect.top - caRect.top) - 8;
-    console.log('[V5 scrollToTop] scrollTop now:', ca.scrollTop, 'elTop:', Math.round(elRect.top), 'caTop:', Math.round(caRect.top));
-  });
+    const delta = elRect.top - caRect.top - 8;
+    ca.scrollTop = ca.scrollTop + delta;
+    console.log('[V5 scroll] delta='+Math.round(delta)+' scrollTop='+Math.round(ca.scrollTop)+' scrollH='+ca.scrollHeight+' clientH='+ca.clientHeight);
+  }, 50);
 }
 
 function fillInput(text){
