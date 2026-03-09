@@ -280,13 +280,26 @@ async function loadSheets(){
   console.log('==============================');
   // ──────────────────────────────────────────────────────────
 
-  // Apply config to UI
-  if(cfg['chatbot_name'])
-    document.getElementById('header-title').textContent = cfg['chatbot_name'];
-  if(cfg['org_name'])
-    document.getElementById('header-sub').textContent = cfg['org_name'];
+  // Apply config to UI immediately after sheets load
+  applyConfig();
   setStatus('online');
   return true;
+}
+
+// ══════════════════════════════════════════════════════════
+// APPLY CONFIG TO UI
+// ══════════════════════════════════════════════════════════
+function applyConfig(){
+  const name = cfg['chatbot_name'] || '';
+  const org  = cfg['org_name']     || '';
+  if(name) document.getElementById('header-title').textContent = name;
+  if(org)  document.getElementById('header-sub').textContent   = org;
+  // Also update footer tagline if config has one
+  const tagline = cfg['chatbot_tagline'] || '';
+  if(tagline) document.getElementById('footer-text').textContent = tagline;
+  // Update max questions from config
+  const mq = parseInt(cfg['max_questions_per_session']);
+  if(mq > 0) maxQ = mq;
 }
 
 // ══════════════════════════════════════════════════════════
@@ -296,7 +309,6 @@ async function checkPass(){
   const val = document.getElementById('gate-input').value.trim();
   if(!val) return;
 
-  // If sheets haven't loaded yet, wait for them
   if(!Object.keys(sheetData).length){
     document.getElementById('gate-btn').textContent = 'Loading...';
     document.getElementById('gate-btn').disabled = true;
@@ -305,15 +317,56 @@ async function checkPass(){
     document.getElementById('gate-btn').disabled = false;
   }
 
-  // Passphrase check — fully case-insensitive both directions
   const stored = (cfg['subscriber_passphrase'] || 'RESISTANCE2026').trim();
   if(val.trim().toUpperCase() === stored.toUpperCase()){
     document.getElementById('gate').style.display = 'none';
+    applyConfig(); // ← re-apply after gate hides to guarantee header is correct
     addBotMsg(cfg['chatbot_welcome_message'] || cfg['welcome_message'] || 'Welcome to Ridgefield Resistance. How can I help you take action today?');
+    showDebugPanel(); // ← temporary: visible on-screen diagnostics
     renderActionCards();
   } else {
     document.getElementById('gate-error').style.display = 'block';
   }
+}
+
+// ══════════════════════════════════════════════════════════
+// VISIBLE DEBUG PANEL (remove after confirmed working)
+// ══════════════════════════════════════════════════════════
+function showDebugPanel(){
+  const rawActions = sheetData.actions || [];
+  const lines = [];
+  lines.push(`chatbot_name cfg value: "${cfg['chatbot_name'] || '(empty)'}"`);
+  lines.push(`subscriber_passphrase: "${cfg['subscriber_passphrase'] || '(empty)'}"`);
+  lines.push(`Raw Actions rows loaded: ${rawActions.length}`);
+  if(rawActions[0]){
+    lines.push(`Actions columns: ${Object.keys(rawActions[0]).join(' | ')}`);
+    lines.push(`First row values:`);
+    Object.entries(rawActions[0]).forEach(([k,v]) => lines.push(`  "${k}" = "${v}"`));
+  } else {
+    lines.push('⚠️ NO ROWS in Actions tab — tab may not be published');
+  }
+  lines.push(`Active actions after filter: ${activeActions.length}`);
+  rawActions.slice(0,5).forEach((r,i) => {
+    const ac = Object.keys(r).find(k => k.toLowerCase().trim()==='active') || '(no active col)';
+    const av = r[ac] || '';
+    const pc = Object.keys(r).find(k => k.toLowerCase().trim()==='priority') || '(no priority col)';
+    const pv = r[pc] || '';
+    lines.push(`Row ${i}: active="${av}" priority="${pv}" live=${isActionLive(r)}`);
+  });
+
+  const panel = document.createElement('div');
+  panel.style.cssText = 'background:#0d2010;border:1px solid #166534;border-radius:8px;padding:12px 14px;font-size:11px;font-family:monospace;color:#6ee7b7;white-space:pre-wrap;word-break:break-all;margin:4px 0;width:100%;max-width:600px;align-self:flex-start;';
+  panel.innerHTML = `<strong style="color:#4ade80">🔧 DEBUG (deploy one more time to remove)</strong>\n\n` + lines.join('\n');
+
+  // Add dismiss button
+  const btn = document.createElement('button');
+  btn.textContent = '✕ dismiss';
+  btn.style.cssText = 'margin-top:8px;background:#166534;border:none;color:#6ee7b7;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;display:block;';
+  btn.onclick = () => panel.remove();
+  panel.appendChild(btn);
+
+  document.getElementById('chat-area').appendChild(panel);
+  scrollBottom();
 }
 
 // ══════════════════════════════════════════════════════════
