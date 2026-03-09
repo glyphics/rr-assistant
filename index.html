@@ -598,14 +598,10 @@ function slowScrollBottom(){
 function scrollToTop(el){
   if(!el) return;
   const ca = document.getElementById('chat-area');
-  // offsetTop is relative to offsetParent — walk up to find position inside ca
-  let top = 0;
-  let node = el;
-  while(node && node !== ca){
-    top += node.offsetTop;
-    node = node.offsetParent;
-  }
-  ca.scrollTop = top - 8;
+  // Flash border red briefly so we can confirm this function fires
+  ca.style.outline = '3px solid red';
+  setTimeout(() => ca.style.outline = '', 600);
+  ca.scrollTop = el.offsetTop - 8;
 }
 
 function fillInput(text){
@@ -630,7 +626,15 @@ function isActionQuery(text){
 // SEND MESSAGE
 // ══════════════════════════════════════════════════════════
 async function sendMsg(){
-  if(busy) return;
+  // DIAGNOSTIC: flash yellow=called, orange=busy blocked, disappears=proceeding
+  const ca = document.getElementById('chat-area');
+  ca.style.outline = '4px solid yellow';
+  setTimeout(() => ca.style.outline = '', 800);
+  if(busy){
+    ca.style.outline = '4px solid orange';
+    setTimeout(() => ca.style.outline = '', 800);
+    return;
+  }
   const inp = document.getElementById('msg-input');
   const text = inp.value.trim();
   if(!text) return;
