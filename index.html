@@ -110,8 +110,8 @@
   <div class="header-left">
     <div class="logo">RR</div>
     <div>
-      <div class="header-title">RR Assistant</div>
-      <div class="header-sub">Ridgefield Resistance</div>
+      <div class="header-title" id="header-title">RR Assistant</div>
+      <div class="header-sub" id="header-sub">Ridgefield Resistance</div>
     </div>
   </div>
   <div id="status-dot" title="Status"></div>
@@ -252,6 +252,11 @@ async function loadSheets(){
     if(k) cfg[k] = v;
   });
   activeActions = getActiveActions(sheetData.actions || []);
+  // Apply config to UI
+  if(cfg['chatbot_name'])
+    document.getElementById('header-title').textContent = cfg['chatbot_name'];
+  if(cfg['org_name'])
+    document.getElementById('header-sub').textContent = cfg['org_name'];
   setStatus('online');
   return true;
 }
@@ -363,34 +368,44 @@ function buildContext(){
 // ACTION CARDS RENDERER
 // ══════════════════════════════════════════════════════════
 function getPriority(r){
-  // Try every likely column name variant the sheet might export
-  return r['Priority'] || r['priority'] || r['PRIORITY'] ||
-         r['ID']?.match ? '' : ''; // last resort — will show nothing
+  // Try exact match first, then case-insensitive scan of all keys
+  const direct = r['Priority'] ?? r['priority'] ?? r['PRIORITY'] ?? null;
+  if(direct !== null) return String(direct).replace(/\s/g,'');
+  // Fallback: scan every key for 'priority'
+  const k = Object.keys(r).find(k => k.toLowerCase().trim() === 'priority');
+  return k ? String(r[k]).replace(/\s/g,'') : '';
 }
 
 function priorityDot(p){
-  const n = parseInt(p);
+  const n = parseInt(p, 10);
   if(n === 1) return `<span class="action-priority-dot p1" title="Priority 1"></span>`;
   if(n === 2) return `<span class="action-priority-dot p2" title="Priority 2"></span>`;
   if(n === 3) return `<span class="action-priority-dot p3" title="Priority 3"></span>`;
-  if(p && !isNaN(n)) return `<span class="action-priority-dot px" title="Priority ${n}"></span>`;
-  return `<span class="action-priority-dot px" title="Priority unset"></span>`;
+  return `<span class="action-priority-dot px" title="Priority ${p||'?'}"></span>`;
 }
 
 function renderActionCards(){
   if(!activeActions.length) return;
-  // Debug: log first row's keys so we can see exact column names
-  if(activeActions[0]) console.log('Actions row keys:', Object.keys(activeActions[0]), activeActions[0]);
+  if(activeActions[0]){
+    const keys = Object.keys(activeActions[0]);
+    console.log('Actions columns:', keys);
+    keys.forEach(k => {
+      if(k.toLowerCase().includes('prior'))
+        console.log(`  Priority column: "${k}" = "${activeActions[0][k]}"`);
+    });
+    console.log('First row full:', activeActions[0]);
+  }
   const wrapper = document.createElement('div');
   wrapper.className = 'action-cards-wrapper';
   wrapper.innerHTML = `<div class="action-cards-label">📣 Take Action Now</div><div class="action-cards-scroll"></div>`;
   const scroll = wrapper.querySelector('.action-cards-scroll');
   activeActions.forEach(r => {
-    const p        = r['Priority'] || r['priority'] || '';
-    const hasLink  = r['Link'] && r['Link'].trim();
-    const linkLabel = r['Link_Label'] || r['Link Label'] || 'Take Action';
-    const pn       = parseInt(p);
+    const p         = getPriority(r);
+    const pn        = parseInt(p, 10);
     const borderCol = pn===1 ? '#ef4444' : pn===2 ? '#eab308' : pn===3 ? '#22c55e' : '#2563eb';
+    const hasLink   = r['Link'] && r['Link'].trim();
+    const linkLabel = r['Link_Label'] || r['Link Label'] || 'Take Action';
+    console.log(`  Card p="${p}" pn=${pn} border=${borderCol}`);
     const card = document.createElement('div');
     card.className = 'action-card';
     card.style.borderLeftColor = borderCol;
