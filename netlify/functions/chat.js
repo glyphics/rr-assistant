@@ -1,153 +1,128 @@
-// ══════════════════════════════════════════════════════════════════════════
-// ResistChat — Netlify Function · chat.js
-// Receives POST from index.html, calls Anthropic API, logs to Google Sheets.
+// ═══════════════════════════════════════════════════════════════
+// ResistChat — Netlify Serverless Function
+// File: netlify/functions/chat.js
+// Ridgefield Resistance
 //
-// Expected request body fields:
-//   messages          — conversation history (with FAQ injection if matched)
-//   session_id        — client-generated session identifier
-//   sheetData         — full sheet data from Google Sheets (officials, events, etc.)
-//   cfg               — config key/value pairs from Config tab
-//   original_question — clean user text (not the injected FAQ prompt)
-//   action_served     — action item ID pre-computed by index.html (may be empty)
-// ══════════════════════════════════════════════════════════════════════════
+// Proxies requests to Anthropic Claude Haiku.
+// Logs each exchange to Google Apps Script (LOGGER_URL),
+// now including the `action_served` field (comma-separated
+// Action IDs that were displayed to the user during this turn).
+// ═══════════════════════════════════════════════════════════════
 
-exports.handler = async function (event) {
-  if (event.httpMethod !== 'POST') {
+exports.handler = async function(event) {
+
+  // ── CORS preflight ──────────────────────────────────────────
+  if(event.httpMethod === 'OPTIONS'){
+    return {
+      statusCode: 204,
+      headers: {
+        'Access-Control-Allow-Origin' : '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type'
+      },
+      body: ''
+    };
+  }
+
+  if(event.httpMethod !== 'POST'){
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
+  // ── ENV vars ────────────────────────────────────────────────
   const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
   const LOGGER_URL        = process.env.LOGGER_URL;
 
-  if (!ANTHROPIC_API_KEY) {
+  if(!ANTHROPIC_API_KEY){
     return {
       statusCode: 500,
+      headers: { 'Access-Control-Allow-Origin': '*' },
       body: JSON.stringify({ error: 'API key not configured' })
     };
   }
 
+  // ── Parse request body ──────────────────────────────────────
+  let body;
   try {
-    const body = JSON.parse(event.body);
-    const d    = body.sheetData || {};
-    const cfg  = body.cfg       || {};
-    const today = new Date().toISOString().split('T')[0];
+    body = JSON.parse(event.body || '{}');
+  } catch {
+    return {
+      statusCode: 400,
+      headers: { 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({ error: 'Invalid JSON body' })
+    };
+  }
 
-    // ── Build system prompt ─────────────────────────────────────────────
-    let system = `You are ${cfg.chatbot_name || 'RR Assistant'}, a civic information assistant for ${cfg.org_name || 'Ridgefield Resistance'}.
+  const {
+    session_id     = 'unknown',
+    messages       = [],
+    system_context = '',
+    action_served  = ''   // ← NEW: comma-separated action IDs from index.html
+  } = body;
 
-CORE RULES:
-1. FAQ ANSWERS ARE SCRIPTS — when a user question matches a FAQ, reproduce the FAQ answer content faithfully. Do not paraphrase, do not omit facts, do not substitute your own knowledge.
-2. Geographic scope: ${cfg.geographic_focus || 'Ridgefield CT, Fairfield County, Connecticut statewide, Federal/National — including US President, Congress, Supreme Court, and federal policy'}
-3. Today is ${today}. Never mention events with expires_date before today.
-4. Always provide phone numbers, emails, and links when available.
-5. If curated data does not have the answer, use your own knowledge to answer civic, political, and government questions — especially about federal officials, the Supreme Court, Congress, the President, and US policy. Only deflect to external resources for topics completely unrelated to civic life, government, or political action.
-6. Out of scope: "${cfg.out_of_scope_response || "That's outside my focus area. For broader political questions, check ProPublica, Ballotpedia, or Congress.gov."}"
+  if(!messages.length){
+    return {
+      statusCode: 400,
+      headers: { 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({ error: 'No messages provided' })
+    };
+  }
 
-=== OFFICIALS ===`;
-
-    (d.officials || []).filter(o => o.active !== 'FALSE').forEach(o => {
-      if (!o.title) return;
-      system += `\n${o.title} ${o.first_name} ${o.last_name} | ${o.level} | District: ${o.district || 'N/A'}`;
-      if (o.phone)                              system += ` | Phone: ${o.phone}`;
-      if (o.email && o.email !== 'via website') system += ` | Email: ${o.email}`;
-      if (o.website)                            system += ` | Website: ${o.website}`;
-      if (o.office_address)                     system += ` | Office: ${o.office_address}`;
-      if (o.notes)                              system += ` | Notes: ${o.notes}`;
-    });
-
-    system += '\n\n=== UPCOMING EVENTS ===';
-    const events = (d.events || []).filter(e =>
-      e.active !== 'FALSE' && (e.expires_date || '9999') >= today
-    );
-    if (!events.length) {
-      system += '\nNo upcoming events currently scheduled.';
-    } else {
-      events.forEach(e => {
-        system += `\n${e.event_name} (${e.event_type}) — ${e.date} at ${e.time} — ${e.location_name}, ${e.location_address}`;
-        if (e.description)       system += ` — ${e.description}`;
-        if (e.registration_link) system += ` — Register: ${e.registration_link}`;
-      });
-    }
-
-    system += '\n\n=== FAQs — CRITICAL: REPRODUCE THESE ANSWERS FAITHFULLY ===';
-    system += '\nWhen a user asks something matching a FAQ below, your answer MUST include all the facts in the FAQ answer. Do not omit geographic policy, mission statements, historical context, or any other detail present in the FAQ answer.\n';
-    (d.faqs || []).forEach(f => {
-      if (!f.question) return;
-      system += `\nUSER MAY ASK: "${f.question}"\nREQUIRED ANSWER CONTENT: ${f.answer}\n`;
-    });
-
-    system += '\n\n=== RESOURCES ===';
-    (d.resources || []).filter(r => r.active !== 'FALSE').forEach(r => {
-      if (r.name) system += `\n${r.name} (${r.category}) — ${r.description} — ${r.url}`;
-    });
-
-    system += `\n\n=== ORG CONTACT ===\nEmail: ${cfg.org_email || 'N/A'}\nWebsite: ${cfg.org_website || 'N/A'}\nSubstack: ${cfg.org_substack || 'N/A'}`;
-
-    // ── Call Anthropic API ──────────────────────────────────────────────
+  // ── Call Anthropic API ──────────────────────────────────────
+  let data;
+  try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Content-Type':    'application/json',
-        'x-api-key':       ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
+        'Content-Type'      : 'application/json',
+        'x-api-key'         : ANTHROPIC_API_KEY,
+        'anthropic-version' : '2023-06-01'
       },
       body: JSON.stringify({
-        model:      'claude-haiku-4-5-20251001',
-        max_tokens: 1000,
-        system:     system,
-        messages:   body.messages
+        model      : 'claude-haiku-4-5-20251001',
+        max_tokens : 1024,
+        system     : system_context,
+        messages   : messages
       })
     });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      return {
-        statusCode: response.status,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-        body: JSON.stringify({ error: data.error || 'API error' })
-      };
-    }
-
-    // ── Log to Google Sheets (non-blocking) ────────────────────────────
-    // Uses original_question (clean user text) instead of lastUser.content
-    // which would contain the full injected FAQ prompt.
-    // action_served is pre-computed by index.html before the fetch so it
-    // arrives here correctly in the same request body.
-    if (LOGGER_URL && body.messages && body.messages.length > 0) {
-      const cleanQuestion = body.original_question
-        || (([...body.messages].reverse().find(m => m.role === 'user') || {}).content || '');
-      const reply = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
-
-      try {
-        await fetch(LOGGER_URL, {
-          method:   'POST',
-          redirect: 'follow',
-          headers:  { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({
-            session_id:    body.session_id    || 'unknown',
-            question:      cleanQuestion,
-            response:      reply,
-            action_served: body.action_served || ''
-          })
-        });
-      } catch (logErr) {
-        console.log('Logging failed (non-fatal):', logErr.message);
-      }
-    }
-
+    data = await response.json();
+  } catch(err){
     return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify(data)
-    };
-
-  } catch (err) {
-    console.error('Handler error:', err.message);
-    return {
-      statusCode: 500,
+      statusCode: 502,
       headers: { 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ error: err.message })
+      body: JSON.stringify({ error: 'Upstream API error: ' + err.message })
     };
   }
+
+  // ── Log to Google Apps Script ───────────────────────────────
+  // Non-blocking — never lets a logger failure affect the user response.
+  if(LOGGER_URL){
+    try {
+      const lastUser = [...messages].reverse().find(m => m.role === 'user');
+      const reply    = data.content?.[0]?.text || '';
+
+      await fetch(LOGGER_URL, {
+        method  : 'POST',
+        headers : { 'Content-Type': 'application/json' },
+        body    : JSON.stringify({
+          session_id    : session_id,
+          question      : lastUser ? lastUser.content : '',
+          response      : reply,
+          action_served : action_served   // ← NEW: forwarded to Apps Script
+        })
+      });
+    } catch(logErr){
+      // Silent fail — logging never blocks the user
+      console.log('Logger error:', logErr.message);
+    }
+  }
+
+  // ── Return Claude response ──────────────────────────────────
+  return {
+    statusCode: 200,
+    headers: {
+      'Content-Type'              : 'application/json',
+      'Access-Control-Allow-Origin': '*'
+    },
+    body: JSON.stringify(data)
+  };
 };
