@@ -117,7 +117,7 @@
     <input type="password" id="gate-input" placeholder="Passphrase" onkeydown="if(event.key==='Enter')checkPass()"/>
     <button id="gate-btn" onclick="checkPass()">Enter</button>
     <p id="gate-error">Incorrect passphrase — please check the latest newsletter for the correct passphrase.</p>
-    <p style="margin-top:16px;font-size:10px;color:#dc2626;font-weight:900;">V1.6.7</p>
+    <p style="margin-top:16px;font-size:10px;color:#dc2626;font-weight:900;">V1.7.0</p>
   </div>
 </div>
 
@@ -156,8 +156,9 @@
   </div>
   <p id="footer-text"></p>
 </div>
-<div id="version-stamp" style="position:fixed;bottom:4px;right:8px;font-size:10px;font-weight:900;color:#dc2626;z-index:50;pointer-events:none;">V1.6.7</div>
+<div id="version-stamp" style="position:fixed;bottom:4px;right:8px;font-size:10px;font-weight:900;color:#dc2626;z-index:50;pointer-events:none;">V1.7.0</div>
 <div id="tagline-stamp" style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:#4b5563;z-index:50;pointer-events:none;white-space:nowrap;">Ridgefield Resistance · Your guide to local civic action</div>
+<div id="footer-left-stamp" style="position:fixed;bottom:4px;left:8px;font-size:10px;color:#4b5563;z-index:50;pointer-events:none;white-space:nowrap;"></div>
 
 <script>
 // ══════════════════════════════════════════════════════════
@@ -332,7 +333,12 @@ function applyConfig(){
   const org  = cfg['org_name']     || '';
   if(name) document.getElementById('header-title').textContent = name;
   if(org)  document.getElementById('header-sub').textContent   = org;
-  // DO NOT overwrite footer-text — it contains version stamp HTML
+  // Footer left from config
+  const fl = cfg['footer_left'] || '';
+  if(fl){
+    const el = document.getElementById('footer-left-stamp');
+    if(el) el.textContent = fl;
+  }
   // Update max questions from config
   const mq = parseInt(cfg['max_questions_per_session']);
   if(mq > 0) maxQ = mq;
@@ -469,7 +475,7 @@ FORMATTING RULES — always follow these:
 - Use numbered lines "1. " for sequential steps
 - Put each piece of contact info on its own line
 - Keep paragraphs short — 2-3 sentences max
-- Never output raw URLs — describe them instead`;
+- Always include full URLs as plain text when referencing websites, forms, or resources so they become clickable links`;
   return ctx;
 }
 
