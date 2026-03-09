@@ -599,7 +599,7 @@ function scrollToTop(el){
     const ca = document.getElementById('chat-area');
     const caRect = ca.getBoundingClientRect();
     const elRect = el.getBoundingClientRect();
-    const delta = elRect.top - caRect.top - 8;
+    const delta = elRect.top - caRect.top - 24;
     ca.scrollTop = ca.scrollTop + delta;
     console.log('[V5 scroll] delta='+Math.round(delta)+' scrollTop='+Math.round(ca.scrollTop)+' scrollH='+ca.scrollHeight+' clientH='+ca.clientHeight);
   }, 50);
