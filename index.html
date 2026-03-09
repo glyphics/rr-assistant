@@ -519,7 +519,6 @@ function renderActionCards(){
     scroll.appendChild(card);
   });
   document.getElementById('chat-area').appendChild(wrapper);
-  scrollBottom();
 }
 
 function escHtml(s){
@@ -537,10 +536,7 @@ function addBotMsg(text){
     <div class="msg-bubble">${formatMsgText(text)}</div>
   `;
   document.getElementById('chat-area').appendChild(div);
-  scrollBottom();
-}
-
-function addUserMsg(text){
+  return div; // return element so callers can scroll to it
   const div = document.createElement('div');
   div.className = 'msg user';
   div.innerHTML = `
@@ -548,7 +544,6 @@ function addUserMsg(text){
     <div class="msg-bubble">${escHtml(text)}</div>
   `;
   document.getElementById('chat-area').appendChild(div);
-  scrollBottom();
 }
 
 function formatMsgText(text){
@@ -588,30 +583,18 @@ function removeTypingIndicator(){
 }
 
 function scrollBottom(){
-  const ca = document.getElementById('chat-area');
-  ca.scrollTop = ca.scrollHeight;
+  // No-op for login/passive contexts — user scrolls manually
 }
 
 function slowScrollBottom(){
+  // No-op — replaced by user-controlled scrolling
+}
+
+// Scroll so the given element appears at the top of the chat area
+function scrollToTop(el){
   const ca = document.getElementById('chat-area');
-  const start = ca.scrollTop;
-  const end   = ca.scrollHeight;
-  const dist  = end - start;
-  if(dist <= 0) return;
-  const duration = 3000; // 3 seconds
-  let startTime = null;
-  function step(ts){
-    if(!startTime) startTime = ts;
-    const elapsed  = ts - startTime;
-    const progress = Math.min(elapsed / duration, 1);
-    // gentle ease-in-out so it feels deliberate
-    const ease = progress < 0.5
-      ? 2 * progress * progress
-      : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-    ca.scrollTop = start + dist * ease;
-    if(progress < 1) requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
+  const offset = el.offsetTop - ca.offsetTop - 8;
+  ca.scrollTo({ top: offset, behavior: 'smooth' });
 }
 
 function fillInput(text){
@@ -652,6 +635,7 @@ async function sendMsg(){
   document.getElementById('send-btn').disabled = true;
 
   addUserMsg(text);
+  scrollToTop(document.getElementById('chat-area').lastElementChild);
   msgs.push({ role:'user', content: text });
   addTypingIndicator();
   setStatus('loading');
@@ -678,8 +662,9 @@ async function sendMsg(){
     } else {
       const reply = data.content?.[0]?.text || 'No response received.';
       msgs.push({ role:'assistant', content: reply });
-      addBotMsg(reply);
-      // Only show action cards if user explicitly asked about actions
+      const replyEl = addBotMsg(reply);
+      // Scroll so the response appears at top of chat area
+      setTimeout(() => scrollToTop(replyEl), 60);
       if(isActionQuery(text)) renderActionCards();
       qCount++;
     }
