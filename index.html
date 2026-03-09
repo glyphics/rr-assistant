@@ -145,6 +145,7 @@
   <div id="input-row">
     <textarea id="msg-input" placeholder="Ask about officials, events, or how to take action..." rows="1"
       onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"
+      onkeyup="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault()}"
       oninput="autoResize(this)"></textarea>
     <button id="send-btn" onclick="sendMsg()">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="18" height="18">
@@ -646,6 +647,8 @@ async function sendMsg(){
 
   addUserMsg(text);
   const userMsgEl = document.getElementById('chat-area').lastElementChild;
+  // Scroll question to top immediately — happens before fetch, covers all input methods
+  requestAnimationFrame(() => requestAnimationFrame(() => scrollToTop(userMsgEl)));
   msgs.push({ role:'user', content: text });
   addTypingIndicator();
   setStatus('loading');
@@ -673,8 +676,6 @@ async function sendMsg(){
       const reply = data.content?.[0]?.text || 'No response received.';
       msgs.push({ role:'assistant', content: reply });
       addBotMsg(reply);
-      // Double rAF — wait for bot message to fully reflow before scrolling question to top
-      requestAnimationFrame(() => requestAnimationFrame(() => scrollToTop(userMsgEl)));
       if(isActionQuery(text)){
         const cards = renderActionCards();
         if(cards) setTimeout(() => scrollToTop(cards), 80);
