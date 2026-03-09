@@ -58,8 +58,21 @@
 
   /* ── ACTION CARDS ── */
   .action-cards-wrapper{width:100%;max-width:600px;align-self:flex-start;margin-top:4px}
-  .action-cards-label{font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;padding-left:2px}
+  .action-cards-label{font-size:15px;font-weight:800;color:#fbbf24;letter-spacing:.03em;margin-bottom:10px;padding-left:2px}
   .action-cards-scroll{display:flex;flex-direction:column;gap:8px}
+
+  /* ── SCROLL ANIMATIONS ── */
+  @keyframes fadeSlideIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  .msg.bot{animation:fadeSlideIn .35s ease both}
+  .msg.user{animation:fadeIn .15s ease both}
+  .action-cards-wrapper{animation:fadeSlideIn .4s ease both}
+  .action-card{opacity:0;animation:fadeSlideIn .35s ease both;animation-fill-mode:forwards}
+  .action-card:nth-child(1){animation-delay:.05s}
+  .action-card:nth-child(2){animation-delay:.12s}
+  .action-card:nth-child(3){animation-delay:.19s}
+  .action-card:nth-child(4){animation-delay:.26s}
+  .action-card:nth-child(5){animation-delay:.33s}
   .action-card{background:#1a2535;border:1px solid #1e3a5f;border-left:3px solid #2563eb;border-radius:10px;padding:12px 14px;transition:border-color .15s}
   .action-card:hover{border-color:#3b82f6;border-left-color:#3b82f6}
   .action-card-header{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
@@ -344,6 +357,7 @@ async function checkPass(){
     applyConfig();
     addBotMsg(cfg['chatbot_welcome_message'] || cfg['welcome_message'] || 'Welcome to Ridgefield Resistance. How can I help you take action today?');
     renderActionCards();
+    setTimeout(slowScrollBottom, 100); // slow scroll after cards render
   } else {
     document.getElementById('gate-error').style.display = 'block';
   }
@@ -575,6 +589,26 @@ function scrollBottom(){
   ca.scrollTop = ca.scrollHeight;
 }
 
+function slowScrollBottom(){
+  const ca = document.getElementById('chat-area');
+  const start = ca.scrollTop;
+  const end   = ca.scrollHeight;
+  const dist  = end - start;
+  if(dist <= 0) return;
+  const duration = Math.min(900, dist * 0.6); // proportional, max 900ms
+  let startTime = null;
+  function step(ts){
+    if(!startTime) startTime = ts;
+    const elapsed = ts - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    // ease-out cubic
+    const ease = 1 - Math.pow(1 - progress, 3);
+    ca.scrollTop = start + dist * ease;
+    if(progress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
 function fillInput(text){
   document.getElementById('msg-input').value = text;
   document.getElementById('msg-input').focus();
@@ -590,7 +624,7 @@ function autoResize(el){
 // ══════════════════════════════════════════════════════════
 function isActionQuery(text){
   const t = text.toLowerCase();
-  return /\b(action|actions|take action|what can i do|how can i help|what should i do|current actions|this week|get involved|do something|make a difference|call|contact|email|sign|petition|attend|show up)\b/.test(t);
+  return /\b(actions?|take action|what can i do|how can i help|what should i do|current actions|get involved|do something|make a difference|petition|show up|civic action)\b/.test(t);
 }
 
 // ══════════════════════════════════════════════════════════
