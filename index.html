@@ -358,8 +358,8 @@ async function checkPass(){
     addBotMsg(cfg['chatbot_welcome_message'] || cfg['welcome_message'] || 'Welcome to Ridgefield Resistance. How can I help you take action today?');
     // Hold on welcome for 5s, then reveal action cards and slow scroll
     setTimeout(() => {
-      renderActionCards();
-      setTimeout(slowScrollBottom, 400);
+      const cards = renderActionCards();
+      if(cards) setTimeout(() => scrollToTop(cards), 400);
     }, 5000);
   } else {
     document.getElementById('gate-error').style.display = 'block';
@@ -519,6 +519,7 @@ function renderActionCards(){
     scroll.appendChild(card);
   });
   document.getElementById('chat-area').appendChild(wrapper);
+  return wrapper;
 }
 
 function escHtml(s){
@@ -635,7 +636,8 @@ async function sendMsg(){
   document.getElementById('send-btn').disabled = true;
 
   addUserMsg(text);
-  scrollToTop(document.getElementById('chat-area').lastElementChild);
+  const userMsgEl = document.getElementById('chat-area').lastElementChild;
+  scrollToTop(userMsgEl);
   msgs.push({ role:'user', content: text });
   addTypingIndicator();
   setStatus('loading');
@@ -662,10 +664,13 @@ async function sendMsg(){
     } else {
       const reply = data.content?.[0]?.text || 'No response received.';
       msgs.push({ role:'assistant', content: reply });
-      const replyEl = addBotMsg(reply);
-      // Scroll so the response appears at top of chat area
-      setTimeout(() => scrollToTop(replyEl), 60);
-      if(isActionQuery(text)) renderActionCards();
+      addBotMsg(reply);
+      // Re-scroll question to top so response flows naturally below — user scrolls through it
+      setTimeout(() => scrollToTop(userMsgEl), 60);
+      if(isActionQuery(text)){
+        const cards = renderActionCards();
+        if(cards) setTimeout(() => scrollToTop(cards), 60);
+      }
       qCount++;
     }
   } catch(err){
