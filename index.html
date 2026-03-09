@@ -327,29 +327,39 @@ function buildContext(){
 
   if(sheetData.officials?.length){
     ctx += '## ELECTED OFFICIALS\n';
-    sheetData.officials.slice(0,20).forEach(r => {
-      if(r['First Name']||r['first_name']){
-        const fn = r['First Name']||r['first_name']||'';
-        const ln = r['Last Name']||r['last_name']||'';
-        const ti = r['Title']||r['title']||'';
-        const ph = r['Phone']||r['phone']||'';
-        const em = r['Email']||r['email']||'';
-        ctx += `- ${ti} ${fn} ${ln}${ph?' | '+ph:''}${em?' | '+em:''}\n`;
-      }
+    sheetData.officials.filter(r => (r['active']||r['Active']||'true').toLowerCase() !== 'false').slice(0,30).forEach(r => {
+      const fn   = r['first_name']  || '';
+      const ln   = r['last_name']   || '';
+      const ti   = r['title']       || '';
+      const ph   = r['phone']       || '';
+      const em   = r['email']       || '';
+      const web  = r['website']     || '';
+      const dist = r['district']    || '';
+      const lvl  = r['level']       || '';
+      if(!fn && !ln) return;
+      ctx += `- ${ti} ${fn} ${ln}${dist?' ('+dist+')':''}${lvl?' ['+lvl+']':''}${ph?' | '+ph:''}${em?' | '+em:''}${web?' | '+web:''}\n`;
     });
     ctx += '\n';
   }
 
   const now = new Date();
   const upcomingEvents = (sheetData.events||[]).filter(r => {
-    if(!r['Date']&&!r['Start Date']) return false;
-    const d = parseMMDDYYYY(r['Date']||r['Start Date']);
+    const active = (r['Active']||r['active']||'').trim().toLowerCase();
+    if(active === 'false') return false;
+    const d = parseMMDDYYYY(r['date']||r['Date']||'');
     return d && d >= now;
   }).slice(0,10);
   if(upcomingEvents.length){
     ctx += '## UPCOMING EVENTS\n';
     upcomingEvents.forEach(r => {
-      ctx += `- ${r['Event']||r['Title']||r['Name']||'Event'} | ${r['Date']||r['Start Date']||''} | ${r['Location']||''} | ${r['Description']||r['Details']||''}\n`;
+      const name = r['event_name']||r['Event']||r['Title']||r['Name']||'Event';
+      const date = r['date']||r['Date']||'';
+      const time = r['time']||r['Time']||'';
+      const loc  = r['location_name']||r['Location']||'';
+      const addr = r['location_address']||'';
+      const desc = r['description']||r['Description']||r['Details']||'';
+      const reg  = r['registration_link']||'';
+      ctx += `- ${name} | ${date}${time?' at '+time:''} | ${loc}${addr?' ('+addr+')':''} | ${desc}${reg?' | Register: '+reg:''}\n`;
     });
     ctx += '\n';
   }
@@ -357,27 +367,38 @@ function buildContext(){
   if(sheetData.faqs?.length){
     ctx += '## FREQUENTLY ASKED QUESTIONS\n';
     sheetData.faqs.forEach(r => {
-      const q = r['Question']||r['C']||'';
-      const a = r['Answer']||r['D']||'';
-      if(q&&a) ctx += `Q: ${q}\nA: ${a}\n\n`;
+      const q = r['question'] || '';
+      const a = r['answer']   || '';
+      const s = r['source_url'] || '';
+      if(q && a) ctx += `Q: ${q}\nA: ${a}${s?' (source: '+s+')':''}\n\n`;
     });
   }
 
   if(sheetData.resources?.length){
     ctx += '## RESOURCES & LINKS\n';
-    sheetData.resources.slice(0,15).forEach(r => {
-      const label = r['Label']||r['Title']||r['Name']||'';
-      const url   = r['URL']||r['Link']||'';
-      const desc  = r['Description']||r['Details']||'';
-      if(label) ctx += `- ${label}${url?' ('+url+')':''}${desc?' — '+desc:''}\n`;
-    });
+    sheetData.resources
+      .filter(r => (r['active']||r['Active']||'true').toLowerCase() !== 'false')
+      .filter(r => r['name'] || r['url'])
+      .slice(0,20).forEach(r => {
+        const name = r['name']         || '';
+        const url  = r['url']          || '';
+        const desc = r['description']  || '';
+        const why  = r['why_relevant'] || '';
+        const rec  = (r['recommended']||'').toLowerCase() === 'true' ? ' ⭐' : '';
+        ctx += `- ${name}${rec}${url?' ('+url+')':''}${desc?' — '+desc:''}${why?' | '+why:''}\n`;
+      });
     ctx += '\n';
   }
 
   if(activeActions.length){
     ctx += '## CURRENT ACTIONS (reference these when relevant)\n';
     activeActions.forEach(r => {
-      ctx += `- [${r['Category']||'Action'}] ${r['Answer']||''} | ${r['Details']||''} | Urgency: ${r['Urgency']||'Normal'}\n`;
+      const cat     = getCol(r,'category')   || 'Action';
+      const answer  = getCol(r,'answer')     || '';
+      const details = getCol(r,'details')    || '';
+      const link    = getCol(r,'link')       || '';
+      const label   = getCol(r,'link_label') || '';
+      ctx += `- [${cat}] ${answer} | ${details}${link?' | Link: '+link+(label?' ('+label+')':''):''}\n`;
     });
     ctx += '\n';
   }
