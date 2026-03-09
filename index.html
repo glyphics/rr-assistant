@@ -62,11 +62,11 @@
   .action-card:hover{border-color:#3b82f6;border-left-color:#3b82f6}
   .action-card-header{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
   .action-category{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;padding:2px 7px;border-radius:4px;background:#1e3a5f;color:#60a5fa}
-  .action-urgency{font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px}
-  .action-urgency.high{background:#450a0a;color:#f87171}
-  .action-urgency.medium{background:#431407;color:#fb923c}
-  .action-urgency.low{background:#052e16;color:#4ade80}
-  .action-urgency.default{background:#1f2937;color:#9ca3af}
+  .action-priority{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px}
+  .action-priority.p1{background:#450a0a;color:#fca5a5}
+  .action-priority.p2{background:#422006;color:#fcd34d}
+  .action-priority.p3{background:#052e16;color:#6ee7b7}
+  .action-priority.px{background:#1f2937;color:#9ca3af}
   .action-answer{font-size:13px;font-weight:600;color:#f3f4f6;margin-bottom:4px;line-height:1.4}
   .action-details{font-size:12px;color:#9ca3af;line-height:1.5;margin-bottom:8px}
   .action-link{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:#60a5fa;text-decoration:none;background:#1e3a5f;padding:5px 10px;border-radius:6px;transition:background .15s}
@@ -102,6 +102,7 @@
     <input type="password" id="gate-input" placeholder="Passphrase" onkeydown="if(event.key==='Enter')checkPass()"/>
     <button id="gate-btn" onclick="checkPass()">Enter</button>
     <p id="gate-error">Incorrect passphrase. Try again.</p>
+    <pre id="cfg-debug" style="display:none;margin-top:14px;text-align:left;font-size:10px;color:#6ee7b7;background:#0d1f18;border:1px solid #166534;border-radius:6px;padding:10px;white-space:pre-wrap;word-break:break-all;max-height:180px;overflow-y:auto;"></pre>
   </div>
 </div>
 
@@ -235,13 +236,31 @@ async function loadSheets(){
   });
   cfg = {};
   (sheetData.config||[]).forEach(r => {
-    // Accept any casing of the Key/Value column headers (Key, key, KEY, etc.)
-    const keyCol = Object.keys(r).find(k => k.toLowerCase() === 'key');
-    const valCol = Object.keys(r).find(k => k.toLowerCase() === 'value');
-    const k = keyCol ? r[keyCol].trim() : '';
-    const v = valCol ? r[valCol].trim() : '';
+    const cols = Object.keys(r);
+    if(cols.length < 2) return;
+    // Strategy 1: column literally named 'key' (any case)
+    const keyCol = cols.find(c => c.toLowerCase() === 'key');
+    const valCol = cols.find(c => c.toLowerCase() === 'value');
+    if(keyCol && valCol){
+      const k = (r[keyCol]||'').trim();
+      const v = (r[valCol]||'').trim();
+      if(k) cfg[k] = v;
+      return;
+    }
+    // Strategy 2: no header match — use first col as key, second as value
+    const k = (r[cols[0]]||'').trim();
+    const v = (r[cols[1]]||'').trim();
     if(k) cfg[k] = v;
   });
+  // Debug: show what was read from Config tab on the gate screen
+  const dbg = document.getElementById('cfg-debug');
+  if(dbg){
+    const rows = sheetData.config||[];
+    const headers = rows.length ? Object.keys(rows[0]).join(' | ') : 'no rows loaded';
+    const pairs   = Object.entries(cfg).map(([k,v])=>`${k} = "${v}"`).join('\n') || '(empty — nothing parsed)';
+    dbg.textContent = `Config column headers: ${headers}\n\nParsed cfg:\n${pairs}`;
+    dbg.style.display = 'block';
+  }
   activeActions = getActiveActions(sheetData.actions || []);
   setStatus('online');
   return true;
@@ -350,12 +369,13 @@ function buildContext(){
 // ══════════════════════════════════════════════════════════
 // ACTION CARDS RENDERER
 // ══════════════════════════════════════════════════════════
-function urgencyClass(u){
-  const v = (u||'').toLowerCase();
-  if(v==='high'||v==='urgent') return 'high';
-  if(v==='medium'||v==='moderate') return 'medium';
-  if(v==='low') return 'low';
-  return 'default';
+function priorityBadge(p){
+  const n = parseInt(p);
+  if(n === 1) return `<span class="action-priority p1">🔴 Priority 1</span>`;
+  if(n === 2) return `<span class="action-priority p2">🟡 Priority 2</span>`;
+  if(n === 3) return `<span class="action-priority p3">🟢 Priority 3</span>`;
+  if(p)       return `<span class="action-priority px">Priority ${escHtml(String(p))}</span>`;
+  return '';
 }
 
 function renderActionCards(){
@@ -365,15 +385,14 @@ function renderActionCards(){
   wrapper.innerHTML = `<div class="action-cards-label">📣 Take Action Now</div><div class="action-cards-scroll"></div>`;
   const scroll = wrapper.querySelector('.action-cards-scroll');
   activeActions.forEach(r => {
-    const uc = urgencyClass(r['Urgency']);
-    const hasLink = r['Link'] && r['Link'].trim();
+    const hasLink  = r['Link'] && r['Link'].trim();
     const linkLabel = r['Link_Label']||r['Link Label']||'Take Action';
     const card = document.createElement('div');
     card.className = 'action-card';
     card.innerHTML = `
       <div class="action-card-header">
+        ${priorityBadge(r['Priority'])}
         ${r['Category']?`<span class="action-category">${escHtml(r['Category'])}</span>`:''}
-        ${r['Urgency']?`<span class="action-urgency ${uc}">${escHtml(r['Urgency'])}</span>`:''}
       </div>
       <div class="action-answer">${escHtml(r['Answer']||'')}</div>
       ${r['Details']?`<div class="action-details">${escHtml(r['Details'])}</div>`:''}
