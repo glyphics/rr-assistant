@@ -597,8 +597,13 @@ function slowScrollBottom(){
 
 function scrollToTop(el){
   if(!el) return;
-  const ca = document.getElementById('chat-area');
-  ca.scrollTop = el.offsetTop;
+  requestAnimationFrame(() => {
+    const ca    = document.getElementById('chat-area');
+    const caTop = ca.getBoundingClientRect().top;
+    const elTop = el.getBoundingClientRect().top;
+    // delta = how far el is below the visible top of ca — add to current scrollTop
+    ca.scrollTop += (elTop - caTop) - 8;
+  });
 }
 
 function fillInput(text){
