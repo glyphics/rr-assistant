@@ -46,6 +46,8 @@
   .msg-bubble{background:#1e1e35;border:1px solid #2d2d44;border-radius:12px;padding:10px 14px;font-size:14px;line-height:1.6;color:#e5e7eb}
   .msg.user .msg-bubble{background:#1e3a2f;border-color:#166534}
   .msg-bubble a{color:#60a5fa;text-decoration:underline}
+  .msg-bullet{padding-left:14px;position:relative;margin:2px 0}
+  .msg-bullet::before{content:'•';position:absolute;left:2px;color:#9ca3af}
 
   /* ── TYPING INDICATOR ── */
   .typing-indicator{display:flex;gap:4px;padding:10px 14px}
@@ -461,7 +463,15 @@ function buildContext(){
     ctx += '\n';
   }
 
-  ctx += `Answer questions helpfully and concisely. Use the data above. When suggesting actions, prioritize Current Actions listed above. Stay within the geographic focus. If you don't know something, say so honestly.`;
+  ctx += `Answer questions helpfully and concisely. Use the data above. When suggesting actions, prioritize Current Actions listed above. Stay within the geographic focus. If you don't know something, say so honestly.
+
+FORMATTING RULES — always follow these:
+- Use **bold** for names, phone numbers, and key terms
+- Use bullet lines starting with "- " for lists of items or steps
+- Use numbered lines "1. " for sequential steps
+- Put each piece of contact info on its own line
+- Keep paragraphs short — 2-3 sentences max
+- Never output raw URLs — describe them instead`;
   return ctx;
 }
 
@@ -503,8 +513,8 @@ function renderActionCards(){
         ${priorityDot(p)}
         ${r['Category'] ? `<span class="action-category">${escHtml(r['Category'])}</span>` : ''}
       </div>
-      <div class="action-answer">${escHtml(r['Answer'] || '')}</div>
-      ${r['Details'] ? `<div class="action-details">${escHtml(r['Details'])}</div>` : ''}
+      <div class="action-answer">${formatCardText(r['Answer'] || '')}</div>
+      ${r['Details'] ? `<div class="action-details">${formatCardText(r['Details'])}</div>` : ''}
       ${hasLink ? `<a class="action-link" href="${escHtml(r['Link'])}" target="_blank" rel="noopener">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
         ${escHtml(linkLabel)}
@@ -549,7 +559,18 @@ function formatMsgText(text){
   return escHtml(text)
     .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
     .replace(/\*(.*?)\*/g,'<em>$1</em>')
-    .replace(/(https?:\/\/[^\s]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>')
+    .replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>')
+    // Bullet lines: "- item" or "• item"
+    .replace(/^[-•]\s+(.+)$/gm,'<div class="msg-bullet">$1</div>')
+    // Numbered lines: "1. item"
+    .replace(/^\d+\.\s+(.+)$/gm,'<div class="msg-bullet">$1</div>')
+    .replace(/\n/g,'<br>');
+}
+
+// Format sheet cell text for card display — preserves line breaks, converts URLs
+function formatCardText(text){
+  return escHtml(text)
+    .replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>')
     .replace(/\n/g,'<br>');
 }
 
