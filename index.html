@@ -153,7 +153,7 @@
       </svg>
     </button>
   </div>
-  <p id="footer-text">Ridgefield Resistance · Your guide to local civic action &nbsp;·&nbsp; <span style="color:#dc2626;font-weight:900;font-size:12px;">V5</span></p>
+  <p id="footer-text">Ridgefield Resistance · Your guide to local civic action &nbsp;·&nbsp; <span style="color:#dc2626;font-weight:900;font-size:12px;">V1.6.0</span></p>
 </div>
 
 <script>
@@ -355,6 +355,11 @@ async function checkPass(){
     document.getElementById('gate').style.display = 'none';
     applyConfig();
     addBotMsg(cfg['chatbot_welcome_message'] || cfg['welcome_message'] || 'Welcome to Ridgefield Resistance. How can I help you take action today?');
+    // Scroll welcome message into view with offset
+    setTimeout(() => {
+      const ca = document.getElementById('chat-area');
+      ca.scrollTop = 0;
+    }, 100);
     // Hold on welcome for 5s, then reveal action cards and slow scroll
     setTimeout(() => {
       const cards = renderActionCards();
@@ -599,7 +604,7 @@ function scrollToTop(el){
     const ca = document.getElementById('chat-area');
     const caRect = ca.getBoundingClientRect();
     const elRect = el.getBoundingClientRect();
-    const delta = elRect.top - caRect.top - 24;
+    const delta = elRect.top - caRect.top - 48;
     ca.scrollTop = ca.scrollTop + delta;
     console.log('[V5 scroll] delta='+Math.round(delta)+' scrollTop='+Math.round(ca.scrollTop)+' scrollH='+ca.scrollHeight+' clientH='+ca.clientHeight);
   }, 50);
