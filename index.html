@@ -198,10 +198,17 @@ function parseMMDDYYYY(str){
   return new Date(parseInt(y), parseInt(m)-1, parseInt(d));
 }
 
+function getCol(row, name){
+  // Case-insensitive, whitespace-tolerant column lookup
+  const k = Object.keys(row).find(c => c.toLowerCase().trim() === name.toLowerCase());
+  return k ? (row[k]||'').trim() : '';
+}
+
 function isActionLive(row){
-  const activeVal = (row['Active']||'').trim().toLowerCase();
+  const activeVal = getCol(row, 'active').toLowerCase();
   if(activeVal !== 'true') return false;
-  const exp = parseMMDDYYYY(row['Expires Date']||row['Expires_Date']||'');
+  const expStr = getCol(row, 'expires date') || getCol(row, 'expires_date');
+  const exp = parseMMDDYYYY(expStr);
   if(exp){
     const today = new Date();
     today.setHours(0,0,0,0);
@@ -214,8 +221,8 @@ function getActiveActions(all){
   return all
     .filter(isActionLive)
     .sort((a,b) => {
-      const pa = parseInt(a['Priority']) || 999;
-      const pb = parseInt(b['Priority']) || 999;
+      const pa = parseInt(getCol(a,'priority')) || 999;
+      const pb = parseInt(getCol(b,'priority')) || 999;
       return pa - pb;
     });
 }
@@ -252,6 +259,27 @@ async function loadSheets(){
     if(k) cfg[k] = v;
   });
   activeActions = getActiveActions(sheetData.actions || []);
+
+  // ── DIAGNOSTICS (remove after confirmed working) ──────────
+  console.log('=== RESISTCHAT DIAGNOSTICS ===');
+  console.log('Tabs loaded:', Object.keys(sheetData));
+  console.log('Config chatbot_name:', cfg['chatbot_name']);
+  console.log('Config subscriber_passphrase:', cfg['subscriber_passphrase']);
+  const rawActions = sheetData.actions || [];
+  console.log('Raw actions row count:', rawActions.length);
+  if(rawActions[0]){
+    console.log('Actions column headers:', Object.keys(rawActions[0]));
+    console.log('First raw action row:', rawActions[0]);
+  }
+  rawActions.forEach((r,i) => {
+    const activeCol = Object.keys(r).find(k => k.toLowerCase().trim() === 'active');
+    const activeVal = activeCol ? r[activeCol] : '(column not found)';
+    console.log(`Row ${i}: Active col="${activeCol}" val="${activeVal}" → live=${isActionLive(r)}`);
+  });
+  console.log('activeActions after filter:', activeActions.length);
+  console.log('==============================');
+  // ──────────────────────────────────────────────────────────
+
   // Apply config to UI
   if(cfg['chatbot_name'])
     document.getElementById('header-title').textContent = cfg['chatbot_name'];
@@ -368,12 +396,7 @@ function buildContext(){
 // ACTION CARDS RENDERER
 // ══════════════════════════════════════════════════════════
 function getPriority(r){
-  // Try exact match first, then case-insensitive scan of all keys
-  const direct = r['Priority'] ?? r['priority'] ?? r['PRIORITY'] ?? null;
-  if(direct !== null) return String(direct).replace(/\s/g,'');
-  // Fallback: scan every key for 'priority'
-  const k = Object.keys(r).find(k => k.toLowerCase().trim() === 'priority');
-  return k ? String(r[k]).replace(/\s/g,'') : '';
+  return getCol(r, 'priority');
 }
 
 function priorityDot(p){
