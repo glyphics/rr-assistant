@@ -357,7 +357,7 @@ async function checkPass(){
     applyConfig();
     addBotMsg(cfg['chatbot_welcome_message'] || cfg['welcome_message'] || 'Welcome to Ridgefield Resistance. How can I help you take action today?');
     renderActionCards();
-    setTimeout(slowScrollBottom, 100); // slow scroll after cards render
+    setTimeout(slowScrollBottom, 600); // wait for card animations to finish, then slow scroll
   } else {
     document.getElementById('gate-error').style.display = 'block';
   }
@@ -595,14 +595,16 @@ function slowScrollBottom(){
   const end   = ca.scrollHeight;
   const dist  = end - start;
   if(dist <= 0) return;
-  const duration = Math.min(900, dist * 0.6); // proportional, max 900ms
+  const duration = 1800; // always 1.8 seconds regardless of distance
   let startTime = null;
   function step(ts){
     if(!startTime) startTime = ts;
-    const elapsed = ts - startTime;
+    const elapsed  = ts - startTime;
     const progress = Math.min(elapsed / duration, 1);
-    // ease-out cubic
-    const ease = 1 - Math.pow(1 - progress, 3);
+    // gentle ease-in-out so it feels deliberate
+    const ease = progress < 0.5
+      ? 2 * progress * progress
+      : 1 - Math.pow(-2 * progress + 2, 2) / 2;
     ca.scrollTop = start + dist * ease;
     if(progress < 1) requestAnimationFrame(step);
   }
