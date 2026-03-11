@@ -532,7 +532,7 @@ function buildContext(){
         const url  = r['url']          || '';
         const desc = r['description']  || '';
         const why  = r['why_relevant'] || '';
-        const rec  = (r['recommended']||'').toLowerCase() === 'true' ? ' ⭐' : '';
+        const rec  = (r['recommended']||'').toLowerCase() === 'true' ? ' [recommended]' : '';
         ctx += `- ${name}${rec}${url?' ('+url+')':''}${desc?' — '+desc:''}${why?' | '+why:''}\n`;
       });
     ctx += '\n';
@@ -554,6 +554,7 @@ function buildContext(){
   ctx += `Answer questions helpfully and concisely. Use the data above. When suggesting actions, prioritize Current Actions listed above. Stay within the geographic focus. If you don't know something, say so honestly.
 
 FORMATTING RULES — always follow these:
+- Do not use emojis anywhere in your response
 - Use **bold** for names, phone numbers, and key terms
 - Use bullet lines starting with "- " for lists of items or steps
 - Use numbered lines "1. " for sequential steps
@@ -585,7 +586,7 @@ function renderActionCards(){
   if(!activeActions.length) return;
   const wrapper = document.createElement('div');
   wrapper.className = 'action-cards-wrapper';
-  wrapper.innerHTML = `<div class="action-cards-label">📣 Take Action Now</div><div class="action-cards-scroll"></div>`;
+  wrapper.innerHTML = `<div class="action-cards-label">Take Action Now</div><div class="action-cards-scroll"></div>`;
   const scroll = wrapper.querySelector('.action-cards-scroll');
   activeActions.forEach(r => {
     const p         = getPriority(r);
