@@ -447,7 +447,7 @@ async function checkPass(){
   if(val.trim().toUpperCase() === stored.toUpperCase()){
     document.getElementById('gate').style.display = 'none';
     applyConfig();
-    addBotMsg(cfg['chatbot_welcome_message'] || cfg['welcome_message'] || 'Welcome to Ridgefield Resistance. How can I help you take action today?');
+    addBotMsg(stripEmoji(cfg['chatbot_welcome_message'] || cfg['welcome_message'] || 'Welcome to Ridgefield Resistance. How can I help you take action today?'));
     // Hold on welcome for 5s, then reveal action cards and slow scroll
     setTimeout(() => {
       const cards = renderActionCards();
@@ -643,6 +643,14 @@ function addUserMsg(text){
   document.getElementById('chat-area').appendChild(div);
 }
 
+function stripEmoji(text){
+  if(!text) return text;
+  return text.replace(/[\u{1F000}-\u{1FFFF}|\u{2600}-\u{27BF}|\u{2300}-\u{23FF}|\u{2B00}-\u{2BFF}|\u{FE00}-\u{FEFF}|\u{1F900}-\u{1F9FF}|\u{1FA00}-\u{1FA9F}]/gu,'')
+             .replace(/[\u{1F100}-\u{1F1FF}|\u{1F200}-\u{1F2FF}|\u{1F300}-\u{1F64F}|\u{1F680}-\u{1F6FF}]/gu,'')
+             .replace(/[\u2702-\u27B0]/gu,'')
+             .trim();
+}
+
 function formatMsgText(text){
   return escHtml(text)
     .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
@@ -765,7 +773,7 @@ async function sendMsg(){
     } else {
       const reply = data.content?.[0]?.text || 'No response received.';
       msgs.push({ role:'assistant', content: reply });
-      addBotMsg(reply);
+      addBotMsg(stripEmoji(reply));
       if(isActionQuery(text)){
         const cards = renderActionCards();
         if(cards) setTimeout(() => scrollToTop(cards), 80);
