@@ -481,17 +481,31 @@ function buildContext(){
 
   if(sheetData.officials?.length){
     ctx += '## ELECTED OFFICIALS\n';
-    sheetData.officials.filter(r => (r['active']||r['Active']||'true').toLowerCase() !== 'false').slice(0,30).forEach(r => {
-      const fn   = r['first_name']  || '';
-      const ln   = r['last_name']   || '';
-      const ti   = r['title']       || '';
-      const ph   = r['phone']       || '';
-      const em   = r['email']       || '';
-      const web  = r['website']     || '';
-      const dist = r['district']    || '';
-      const lvl  = r['level']       || '';
+    sheetData.officials.filter(r => (r['active']||r['Active']||'true').toLowerCase() !== 'false').slice(0,500).forEach(r => {
+      const fn   = r['first_name']     || '';
+      const ln   = r['last_name']      || '';
+      const ti   = r['title']          || '';
+      const ph   = r['phone']          || '';
+      const em   = r['email']          || '';
+      const web  = r['website']        || '';
+      const dist = r['district']       || '';
+      const lvl  = r['level']          || '';
+      const img  = r['image']          || '';
+      const tw   = r['twitter']        || '';
+      const yt   = r['youtube']        || '';
+      const ig   = r['instagram']      || '';
+      const wd   = r['wikidata']       || '';
       if(!fn && !ln) return;
-      ctx += `- ${ti} ${fn} ${ln}${dist?' ('+dist+')':''}${lvl?' ['+lvl+']':''}${ph?' | '+ph:''}${em?' | '+em:''}${web?' | '+web:''}\n`;
+      let line = `- ${ti} ${fn} ${ln}${dist?' ('+dist+')':''}${lvl?' ['+lvl+']':''}`;
+      if(ph)  line += ` | Phone: ${ph}`;
+      if(em)  line += ` | Email: ${em}`;
+      if(web) line += ` | Web: ${web}`;
+      if(tw)  line += ` | Twitter: ${tw}`;
+      if(ig)  line += ` | Instagram: ${ig}`;
+      if(yt)  line += ` | YouTube: ${yt}`;
+      if(wd)  line += ` | Wikidata: ${wd}`;
+      if(img) line += ` | Image: ${img}`;
+      ctx += line + '\n';
     });
     ctx += '\n';
   }
