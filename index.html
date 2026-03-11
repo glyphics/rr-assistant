@@ -423,6 +423,12 @@ function applyConfig(){
     const el = document.getElementById('footer-left-stamp');
     if(el) el.innerHTML = `<a href="${flUrl}" target="_blank" rel="noopener" style="color:#fbbf24;text-decoration:none;font-weight:700;">${fl}</a>`;
   }
+  // Footer center from config — plain text tagline
+  const fc = cfg['footer_center'] || '';
+  if(fc){
+    const el = document.getElementById('tagline-stamp');
+    if(el) el.textContent = fc;
+  }
   // Update max questions from config
   const mq = parseInt(cfg['max_questions_per_session']);
   if(mq > 0) maxQ = mq;
